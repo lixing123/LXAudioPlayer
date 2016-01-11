@@ -20,18 +20,27 @@ static void handleError(OSStatus result, const char *operation)
     if (result == noErr) return;
     
     char errorString[20];
-    // see if it appears to be a 4-char-code
     *(UInt32 *)(errorString + 1) = CFSwapInt32HostToBig(result);
     if (isprint(errorString[1]) && isprint(errorString[2]) && isprint(errorString[3]) && isprint(errorString[4])) {
         errorString[0] = errorString[5] = '\'';
         errorString[6] = '\0';
     } else
-        // no, format it as an integer
         sprintf(errorString, "%d", (int)result);
     
     fprintf(stderr, "Error: %s (%s)\n", operation, errorString);
     
     exit(1);
+}
+
+OSStatus RemoteIOUnitCallback(void *							inRefCon,
+                              AudioUnitRenderActionFlags *	    ioActionFlags,
+                              const AudioTimeStamp *			inTimeStamp,
+                              UInt32							inBusNumber,
+                              UInt32							inNumberFrames,
+                              AudioBufferList * __nullable	    ioData){
+    //TODO:implement this function
+    
+    return noErr;
 }
 
 @interface LXAudioPlayer (){
@@ -46,6 +55,7 @@ static void handleError(OSStatus result, const char *operation)
 
 - (id)initWithURL:(NSURL *)url {
     if (self=[super init]) {
+        //TODO:set up input stream
         NSInputStream *inputStream = [[NSInputStream alloc] initWithURL:url];
         
         //set up graph
@@ -56,11 +66,13 @@ static void handleError(OSStatus result, const char *operation)
 }
 
 - (void)play {
-    
+    handleError(AUGraphStart(player.graph),
+                "AUGraphStart failed");
 }
 
 - (void)pause {
-    
+    handleError(AUGraphStop(player.graph),
+                "AUGraphStop failed");
 }
 
 - (void)stop {
@@ -94,11 +106,58 @@ static void handleError(OSStatus result, const char *operation)
                                &remoteIODescription,
                                &remoteIONode),
                 "add RemoteIO node to graph failed");
+    handleError(AUGraphOpen(player.graph),
+                "open graph failed");
     handleError(AUGraphNodeInfo(player.graph,
                                 remoteIONode,
                                 NULL,
                                 &player.remoteIOUnit),
                 "AUGraphNodeInfo failed");
+    
+    //open output hardware(speaker) of remoteIO unit
+    UInt32 enableIO = 1;
+    UInt32 size = sizeof(enableIO);
+    
+    handleError(AudioUnitSetProperty(player.remoteIOUnit,
+                                     kAudioOutputUnitProperty_EnableIO,
+                                     kAudioUnitScope_Output,
+                                     0,
+                                     &enableIO,
+                                     size),
+                "enable speaker of remoteIO failed");
+    
+    //set input stream format of remoteIO unit
+    AudioStreamBasicDescription streamFormat = {0};
+    streamFormat.mFormatID = kAudioFormatLinearPCM;
+    streamFormat.mFormatFlags = kAudioFormatFlagIsSignedInteger | kAudioFormatFlagIsPacked;
+    streamFormat.mSampleRate = 44100.0;
+    streamFormat.mFramesPerPacket = 1;
+    streamFormat.mBytesPerPacket = 4;
+    streamFormat.mBytesPerFrame = 4;
+    streamFormat.mChannelsPerFrame = 2;
+    streamFormat.mBitsPerChannel = 16;
+    handleError(AudioUnitSetProperty(player.remoteIOUnit,
+                                     kAudioUnitProperty_StreamFormat,
+                                     kAudioUnitScope_Input,
+                                     0,
+                                     &streamFormat,
+                                     sizeof(streamFormat)),
+                "unable to set stream format of remoteIO unit");
+    
+    //set render callback of remoteIO unit
+    AURenderCallbackStruct callbackStruct;
+    callbackStruct.inputProc = RemoteIOUnitCallback;
+    callbackStruct.inputProcRefCon = &player;
+    handleError(AudioUnitSetProperty(player.remoteIOUnit,
+                                     kAudioUnitProperty_SetRenderCallback,
+                                     kAudioUnitScope_Input,
+                                     0,
+                                     &callbackStruct,
+                                     sizeof(callbackStruct)),
+                "unable to set render callback of remoteIO unit");
+    
+    handleError(AUGraphInitialize(player.graph),
+                "initialize graph failed");
 }
 
 @end
