@@ -1,0 +1,316 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 46;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		8E08C5A01C438CE200A8EF2C /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 8E08C59F1C438CE200A8EF2C /* main.m */; };
+		8E08C5A31C438CE200A8EF2C /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 8E08C5A21C438CE200A8EF2C /* AppDelegate.m */; };
+		8E08C5A61C438CE200A8EF2C /* ViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 8E08C5A51C438CE200A8EF2C /* ViewController.m */; };
+		8E08C5A91C438CE200A8EF2C /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 8E08C5A71C438CE200A8EF2C /* Main.storyboard */; };
+		8E08C5AB1C438CE200A8EF2C /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 8E08C5AA1C438CE200A8EF2C /* Assets.xcassets */; };
+		8E08C5AE1C438CE200A8EF2C /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 8E08C5AC1C438CE200A8EF2C /* LaunchScreen.storyboard */; };
+		8E08C5B71C438F6600A8EF2C /* LXAudioPlayer.m in Sources */ = {isa = PBXBuildFile; fileRef = 8E08C5B61C438F6600A8EF2C /* LXAudioPlayer.m */; };
+		8E08C5BB1C43A9D400A8EF2C /* test.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = 8E08C5BA1C43A9D400A8EF2C /* test.mp3 */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		8E08C59B1C438CE200A8EF2C /* LXAudioPlayer.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = LXAudioPlayer.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		8E08C59F1C438CE200A8EF2C /* main.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; };
+		8E08C5A11C438CE200A8EF2C /* AppDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = AppDelegate.h; sourceTree = "<group>"; };
+		8E08C5A21C438CE200A8EF2C /* AppDelegate.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = AppDelegate.m; sourceTree = "<group>"; };
+		8E08C5A41C438CE200A8EF2C /* ViewController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ViewController.h; sourceTree = "<group>"; };
+		8E08C5A51C438CE200A8EF2C /* ViewController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = ViewController.m; sourceTree = "<group>"; };
+		8E08C5A81C438CE200A8EF2C /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
+		8E08C5AA1C438CE200A8EF2C /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		8E08C5AD1C438CE200A8EF2C /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
+		8E08C5AF1C438CE200A8EF2C /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		8E08C5B51C438F6600A8EF2C /* LXAudioPlayer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = LXAudioPlayer.h; sourceTree = "<group>"; };
+		8E08C5B61C438F6600A8EF2C /* LXAudioPlayer.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = LXAudioPlayer.m; sourceTree = "<group>"; };
+		8E08C5BA1C43A9D400A8EF2C /* test.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = test.mp3; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		8E08C5981C438CE200A8EF2C /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		8E08C5921C438CE200A8EF2C = {
+			isa = PBXGroup;
+			children = (
+				8E08C59D1C438CE200A8EF2C /* LXAudioPlayer */,
+				8E08C59C1C438CE200A8EF2C /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		8E08C59C1C438CE200A8EF2C /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				8E08C59B1C438CE200A8EF2C /* LXAudioPlayer.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		8E08C59D1C438CE200A8EF2C /* LXAudioPlayer */ = {
+			isa = PBXGroup;
+			children = (
+				8E08C5A11C438CE200A8EF2C /* AppDelegate.h */,
+				8E08C5A21C438CE200A8EF2C /* AppDelegate.m */,
+				8E08C5A41C438CE200A8EF2C /* ViewController.h */,
+				8E08C5A51C438CE200A8EF2C /* ViewController.m */,
+				8E08C5B51C438F6600A8EF2C /* LXAudioPlayer.h */,
+				8E08C5B61C438F6600A8EF2C /* LXAudioPlayer.m */,
+				8E08C5BA1C43A9D400A8EF2C /* test.mp3 */,
+				8E08C5A71C438CE200A8EF2C /* Main.storyboard */,
+				8E08C5AA1C438CE200A8EF2C /* Assets.xcassets */,
+				8E08C5AC1C438CE200A8EF2C /* LaunchScreen.storyboard */,
+				8E08C5AF1C438CE200A8EF2C /* Info.plist */,
+				8E08C59E1C438CE200A8EF2C /* Supporting Files */,
+			);
+			path = LXAudioPlayer;
+			sourceTree = "<group>";
+		};
+		8E08C59E1C438CE200A8EF2C /* Supporting Files */ = {
+			isa = PBXGroup;
+			children = (
+				8E08C59F1C438CE200A8EF2C /* main.m */,
+			);
+			name = "Supporting Files";
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		8E08C59A1C438CE200A8EF2C /* LXAudioPlayer */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 8E08C5B21C438CE200A8EF2C /* Build configuration list for PBXNativeTarget "LXAudioPlayer" */;
+			buildPhases = (
+				8E08C5971C438CE200A8EF2C /* Sources */,
+				8E08C5981C438CE200A8EF2C /* Frameworks */,
+				8E08C5991C438CE200A8EF2C /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = LXAudioPlayer;
+			productName = LXAudioPlayer;
+			productReference = 8E08C59B1C438CE200A8EF2C /* LXAudioPlayer.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		8E08C5931C438CE200A8EF2C /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				LastUpgradeCheck = 0720;
+				ORGANIZATIONNAME = lixing123.com;
+				TargetAttributes = {
+					8E08C59A1C438CE200A8EF2C = {
+						CreatedOnToolsVersion = 7.2;
+					};
+				};
+			};
+			buildConfigurationList = 8E08C5961C438CE200A8EF2C /* Build configuration list for PBXProject "LXAudioPlayer" */;
+			compatibilityVersion = "Xcode 3.2";
+			developmentRegion = English;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 8E08C5921C438CE200A8EF2C;
+			productRefGroup = 8E08C59C1C438CE200A8EF2C /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				8E08C59A1C438CE200A8EF2C /* LXAudioPlayer */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		8E08C5991C438CE200A8EF2C /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				8E08C5AE1C438CE200A8EF2C /* LaunchScreen.storyboard in Resources */,
+				8E08C5AB1C438CE200A8EF2C /* Assets.xcassets in Resources */,
+				8E08C5BB1C43A9D400A8EF2C /* test.mp3 in Resources */,
+				8E08C5A91C438CE200A8EF2C /* Main.storyboard in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		8E08C5971C438CE200A8EF2C /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				8E08C5A61C438CE200A8EF2C /* ViewController.m in Sources */,
+				8E08C5B71C438F6600A8EF2C /* LXAudioPlayer.m in Sources */,
+				8E08C5A31C438CE200A8EF2C /* AppDelegate.m in Sources */,
+				8E08C5A01C438CE200A8EF2C /* main.m in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXVariantGroup section */
+		8E08C5A71C438CE200A8EF2C /* Main.storyboard */ = {
+			isa = PBXVariantGroup;
+			children = (
+				8E08C5A81C438CE200A8EF2C /* Base */,
+			);
+			name = Main.storyboard;
+			sourceTree = "<group>";
+		};
+		8E08C5AC1C438CE200A8EF2C /* LaunchScreen.storyboard */ = {
+			isa = PBXVariantGroup;
+			children = (
+				8E08C5AD1C438CE200A8EF2C /* Base */,
+			);
+			name = LaunchScreen.storyboard;
+			sourceTree = "<group>";
+		};
+/* End PBXVariantGroup section */
+
+/* Begin XCBuildConfiguration section */
+		8E08C5B01C438CE200A8EF2C /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 9.2;
+				MTL_ENABLE_DEBUG_INFO = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+			};
+			name = Debug;
+		};
+		8E08C5B11C438CE200A8EF2C /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 9.2;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				SDKROOT = iphoneos;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		8E08C5B31C438CE200A8EF2C /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				INFOPLIST_FILE = LXAudioPlayer/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
+				PRODUCT_BUNDLE_IDENTIFIER = com.lixing123.LXAudioPlayer;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Debug;
+		};
+		8E08C5B41C438CE200A8EF2C /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				INFOPLIST_FILE = LXAudioPlayer/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
+				PRODUCT_BUNDLE_IDENTIFIER = com.lixing123.LXAudioPlayer;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		8E08C5961C438CE200A8EF2C /* Build configuration list for PBXProject "LXAudioPlayer" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				8E08C5B01C438CE200A8EF2C /* Debug */,
+				8E08C5B11C438CE200A8EF2C /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		8E08C5B21C438CE200A8EF2C /* Build configuration list for PBXNativeTarget "LXAudioPlayer" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				8E08C5B31C438CE200A8EF2C /* Debug */,
+				8E08C5B41C438CE200A8EF2C /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 8E08C5931C438CE200A8EF2C /* Project object */;
+}
