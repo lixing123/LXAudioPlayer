@@ -11,6 +11,14 @@
 
 typedef void (^failOperation) ();
 
+#define DEBUG_MODE
+
+#ifdef DEBUG_MODE
+#define LXLog(fmt, ...) NSLog((@"%s [Line %d] " fmt), __PRETTY_FUNCTION__, __LINE__, ##__VA_ARGS__)
+#else
+#define LXLog(...)
+#endif
+
 static void handleError(OSStatus result, const char *failReason, failOperation operation)
 {
     if (result == noErr) return;
@@ -24,9 +32,11 @@ static void handleError(OSStatus result, const char *failReason, failOperation o
         sprintf(errorString, "%d", (int)result);
     
     fprintf(stderr, "Error: %s (%s)\n", failReason, errorString);
-    operation();
-    
-    exit(1);
+    if (!operation) {
+        exit(1);
+    }else{
+        operation();
+    }
 }
 
 @interface LXAudioPlayer ()<NSStreamDelegate>{
@@ -36,8 +46,11 @@ static void handleError(OSStatus result, const char *failReason, failOperation o
 @property(nonatomic)AudioUnit remoteIOUnit;
 @property(nonatomic)NSURL *url;
 @property(nonatomic)AudioFileStreamID stream;
-
 @property(nonatomic)NSInputStream *inputStream;
+@property(nonatomic)AudioStreamBasicDescription canonicalFormat;
+@property(nonatomic)AudioConverterRef audioConverter;
+
+- (void)setupAudioConverterWithSourceFormat:(AudioStreamBasicDescription *)sourceFormat;
 
 @end
 
@@ -71,11 +84,41 @@ static OSStatus RemoteIOUnitCallback(void *							inRefCon,
     return noErr;
 }
 
-void MyAudioFileStream_PropertyListenerProc(void *							inClientData,
-                                          AudioFileStreamID				inAudioFileStream,
-                                          AudioFileStreamPropertyID		inPropertyID,
-                                          AudioFileStreamPropertyFlags *	ioFlags){
+//TODO:implement this function
+OSStatus MyAudioConverterComplexInputDataProc(AudioConverterRef               inAudioConverter,
+                                              UInt32 *                        ioNumberDataPackets,
+                                              AudioBufferList *               ioData,
+                                              AudioStreamPacketDescription * __nullable * __nullable outDataPacketDescription,
+                                              void * __nullable               inUserData){
+    //supplies input data to AudioConverter and let the converter convert to PCM format
     
+    
+    return noErr;
+}
+
+void MyAudioFileStream_PropertyListenerProc(void *							inClientData,
+                                            AudioFileStreamID				inAudioFileStream,
+                                            AudioFileStreamPropertyID		inPropertyID,
+                                          AudioFileStreamPropertyFlags *	ioFlags){
+    LXAudioPlayer *player = (__bridge LXAudioPlayer*)inClientData;
+    switch (inPropertyID) {
+        case kAudioFileStreamProperty_DataFormat:{
+            AudioStreamBasicDescription inputFormat;
+            UInt32 size = sizeof(inputFormat);
+            handleError(AudioFileStreamGetProperty(inAudioFileStream,
+                                                   kAudioFileStreamProperty_DataFormat,
+                                                   &size,
+                                                   &inputFormat),
+                        "failed to get input stream's data format",
+                        ^{
+                            
+                        });
+            [player setupAudioConverterWithSourceFormat:&inputFormat];
+            break;
+        }
+        default:
+            break;
+    }
 }
 
 void MyAudioFileStream_PacketsProc (void *							inClientData,
@@ -83,7 +126,32 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
                                     UInt32							inNumberPackets,
                                     const void *					inInputData,
                                     AudioStreamPacketDescription	*inPacketDescriptions){
+    LXAudioPlayer *player = (__bridge LXAudioPlayer*)inClientData;
     
+    //get maximum buffer size
+    UInt32 maxBufferSize;
+    UInt32 size = sizeof(maxBufferSize);
+    AudioConverterGetProperty(player.audioConverter,
+                              kAudioConverterPropertyMinimumOutputBufferSize,
+                              &size,
+                              &maxBufferSize);
+    AudioBufferList bufferList;
+    bufferList.mNumberBuffers = 1;
+    bufferList.mBuffers[0].mNumberChannels = player.canonicalFormat.mChannelsPerFrame;
+    bufferList.mBuffers[0].mDataByteSize = maxBufferSize;
+    bufferList.mBuffers[0].mData = malloc(maxBufferSize*sizeof(UInt16));
+    handleError(AudioConverterFillComplexBuffer(player.audioConverter,
+                                                MyAudioConverterComplexInputDataProc,
+                                                 (__bridge void*)player,
+                                                &inNumberPackets,
+                                                &bufferList,
+                                                NULL),
+                "AudioConverterFillComplexBuffer failed",
+                ^{
+                    
+                });
+    
+    //store bufferList
 }
 
 @implementation LXAudioPlayer
@@ -110,7 +178,7 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
                 ^{
                     
                 });
-    NSLog(@"play");
+    LXLog(@"play");
 }
 
 - (void)pause {
@@ -156,6 +224,16 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
                 ^{
                     
                 });
+}
+
+- (void)setupAudioConverterWithSourceFormat:(AudioStreamBasicDescription *)sourceFormat{
+    LXLog(@"setting audio converter source format");
+    AudioStreamBasicDescription streamFormat = self.canonicalFormat;
+    AudioConverterRef audioConverter;
+    AudioConverterNew(sourceFormat,
+                      &streamFormat,
+                      &audioConverter);
+    self.audioConverter = audioConverter;
 }
 
 - (void)setupGraph{
@@ -228,6 +306,7 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
                 ^{
                     
                 });
+    self.canonicalFormat = streamFormat;
     
     //set render callback of remoteIO unit
     AURenderCallbackStruct callbackStruct;
@@ -250,7 +329,7 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
                 ^{
                     
                 });
-    NSLog(@"ready to set up graph");
+    LXLog(@"ready to set up graph");
 }
 
 #pragma mark - NSStreamDelegate
