@@ -34,6 +34,8 @@ static void handleError(OSStatus result, const char *failReason, failOperation o
 
 @property(nonatomic)AUGraph graph;
 @property(nonatomic)AudioUnit remoteIOUnit;
+@property(nonatomic)NSURL *url;
+@property(nonatomic)AudioFileStreamID stream;
 
 @property(nonatomic)NSInputStream *inputStream;
 
@@ -69,14 +71,31 @@ static OSStatus RemoteIOUnitCallback(void *							inRefCon,
     return noErr;
 }
 
+void MyAudioFileStream_PropertyListenerProc(void *							inClientData,
+                                          AudioFileStreamID				inAudioFileStream,
+                                          AudioFileStreamPropertyID		inPropertyID,
+                                          AudioFileStreamPropertyFlags *	ioFlags){
+    
+}
+
+void MyAudioFileStream_PacketsProc (void *							inClientData,
+                                    UInt32							inNumberBytes,
+                                    UInt32							inNumberPackets,
+                                    const void *					inInputData,
+                                    AudioStreamPacketDescription	*inPacketDescriptions){
+    
+}
+
 @implementation LXAudioPlayer
 
 #pragma mark -
 
 - (id)initWithURL:(NSURL *)url {
     if (self=[super init]) {
-        //TODO:set up input stream
-        [self setupInputStreamWithURL:url];
+        self.url = url;
+        [self setupInputStream];
+        
+        [self setupAudioFileStreamService];
         
         //set up graph
         [self setupGraph];
@@ -118,12 +137,25 @@ static OSStatus RemoteIOUnitCallback(void *							inRefCon,
 
 #pragma mark -
 
-- (void)setupInputStreamWithURL:(NSURL*)url{
-    self.inputStream = [[NSInputStream alloc] initWithURL:url];
+- (void)setupInputStream{
+    self.inputStream = [[NSInputStream alloc] initWithURL:self.url];
     self.inputStream.delegate = self;
     [self.inputStream scheduleInRunLoop:[NSRunLoop currentRunLoop]
                                 forMode:NSDefaultRunLoopMode];
     [self.inputStream open];
+}
+
+- (void)setupAudioFileStreamService{
+    AudioFileStreamID localStream;
+    handleError(AudioFileStreamOpen((__bridge void*)self,
+                                    MyAudioFileStream_PropertyListenerProc,
+                                    MyAudioFileStream_PacketsProc,
+                                    0,//TODO:define file type hint with file extension
+                                    &localStream),
+                "failed to open audio file stream",
+                ^{
+                    
+                });
 }
 
 - (void)setupGraph{
