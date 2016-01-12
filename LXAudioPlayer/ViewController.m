@@ -12,6 +12,8 @@
 
 @interface ViewController ()
 
+@property(nonatomic,strong)LXAudioPlayer *lxPlayer;
+
 @end
 
 @implementation ViewController
@@ -22,8 +24,10 @@
     [self setupSession];
     
     NSString *fileString = [[NSBundle mainBundle] pathForResource:@"test" ofType:@"mp3"];
-    LXAudioPlayer *lxPlayer = [[LXAudioPlayer alloc] initWithURL:[NSURL URLWithString:fileString]];
-    [lxPlayer play];
+    NSURL *url = [[NSURL alloc] initFileURLWithPath:fileString];
+    //the lxPlayer must be of a global variable, or it'll be released before playing.
+    self.lxPlayer = [[LXAudioPlayer alloc] initWithURL:url];
+    [self.lxPlayer play];
 }
 
 - (void)setupSession {

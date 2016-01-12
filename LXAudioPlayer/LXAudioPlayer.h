@@ -8,6 +8,8 @@
 
 #import <Foundation/Foundation.h>
 
+//TODO:set error type
+
 //TODO: the LXAudioPLayerDelegate
 //notificaitons: player started, paused, ended, errored, buffering...
 
