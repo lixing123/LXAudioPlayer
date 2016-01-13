@@ -15,6 +15,7 @@
 		8E08C5AE1C438CE200A8EF2C /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 8E08C5AC1C438CE200A8EF2C /* LaunchScreen.storyboard */; };
 		8E08C5B71C438F6600A8EF2C /* LXAudioPlayer.m in Sources */ = {isa = PBXBuildFile; fileRef = 8E08C5B61C438F6600A8EF2C /* LXAudioPlayer.m */; };
 		8E08C5BB1C43A9D400A8EF2C /* test.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = 8E08C5BA1C43A9D400A8EF2C /* test.mp3 */; };
+		8E08C5BF1C46274500A8EF2C /* LXRingBuffer.m in Sources */ = {isa = PBXBuildFile; fileRef = 8E08C5BE1C46274500A8EF2C /* LXRingBuffer.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -31,6 +32,8 @@
 		8E08C5B51C438F6600A8EF2C /* LXAudioPlayer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = LXAudioPlayer.h; sourceTree = "<group>"; };
 		8E08C5B61C438F6600A8EF2C /* LXAudioPlayer.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = LXAudioPlayer.m; sourceTree = "<group>"; };
 		8E08C5BA1C43A9D400A8EF2C /* test.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = test.mp3; sourceTree = "<group>"; };
+		8E08C5BD1C46274500A8EF2C /* LXRingBuffer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = LXRingBuffer.h; sourceTree = "<group>"; };
+		8E08C5BE1C46274500A8EF2C /* LXRingBuffer.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = LXRingBuffer.m; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -69,6 +72,8 @@
 				8E08C5A51C438CE200A8EF2C /* ViewController.m */,
 				8E08C5B51C438F6600A8EF2C /* LXAudioPlayer.h */,
 				8E08C5B61C438F6600A8EF2C /* LXAudioPlayer.m */,
+				8E08C5BD1C46274500A8EF2C /* LXRingBuffer.h */,
+				8E08C5BE1C46274500A8EF2C /* LXRingBuffer.m */,
 				8E08C5BA1C43A9D400A8EF2C /* test.mp3 */,
 				8E08C5A71C438CE200A8EF2C /* Main.storyboard */,
 				8E08C5AA1C438CE200A8EF2C /* Assets.xcassets */,
@@ -161,6 +166,7 @@
 			files = (
 				8E08C5A61C438CE200A8EF2C /* ViewController.m in Sources */,
 				8E08C5B71C438F6600A8EF2C /* LXAudioPlayer.m in Sources */,
+				8E08C5BF1C46274500A8EF2C /* LXRingBuffer.m in Sources */,
 				8E08C5A31C438CE200A8EF2C /* AppDelegate.m in Sources */,
 				8E08C5A01C438CE200A8EF2C /* main.m in Sources */,
 			);

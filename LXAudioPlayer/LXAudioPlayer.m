@@ -19,6 +19,11 @@ typedef void (^failOperation) ();
 #define LXLog(...)
 #endif
 
+typedef struct AudioConverterStruct{
+    UInt16 *inData;
+    UInt32 dataFrameCount;
+}AudioConverterStruct;
+
 static void handleError(OSStatus result, const char *failReason, failOperation operation)
 {
     if (result == noErr) return;
@@ -60,7 +65,6 @@ static OSStatus RemoteIOUnitCallback(void *							inRefCon,
                                      UInt32							inBusNumber,
                                      UInt32							inNumberFrames,
                                      AudioBufferList * __nullable	ioData){
-    LXAudioPlayer *player = (__bridge LXAudioPlayer*)inRefCon;
     
     //read from input file
 //    UInt8 inputBuffer[inNumberFrames];
@@ -84,14 +88,20 @@ static OSStatus RemoteIOUnitCallback(void *							inRefCon,
     return noErr;
 }
 
-//TODO:implement this function
 OSStatus MyAudioConverterComplexInputDataProc(AudioConverterRef               inAudioConverter,
                                               UInt32 *                        ioNumberDataPackets,
                                               AudioBufferList *               ioData,
                                               AudioStreamPacketDescription * __nullable * __nullable outDataPacketDescription,
                                               void * __nullable               inUserData){
     //supplies input data to AudioConverter and let the converter convert to PCM format
+    LXLog(@"");
+    AudioConverterStruct *converterStruct = (AudioConverterStruct*)inUserData;
     
+    ioData->mNumberBuffers = 1;
+    ioData->mBuffers[0].mDataByteSize = converterStruct->dataFrameCount;
+    ioData->mBuffers[0].mNumberChannels = 1;
+    ioData->mBuffers[0].mData = malloc(sizeof(UInt16)*converterStruct->dataFrameCount);
+    memcpy(ioData->mBuffers[0].mData, converterStruct->inData, sizeof(UInt16)*converterStruct->dataFrameCount);
     
     return noErr;
 }
@@ -101,6 +111,7 @@ void MyAudioFileStream_PropertyListenerProc(void *							inClientData,
                                             AudioFileStreamPropertyID		inPropertyID,
                                           AudioFileStreamPropertyFlags *	ioFlags){
     LXAudioPlayer *player = (__bridge LXAudioPlayer*)inClientData;
+    LXLog(@"audio file stream get property:%d",inPropertyID);
     switch (inPropertyID) {
         case kAudioFileStreamProperty_DataFormat:{
             AudioStreamBasicDescription inputFormat;
@@ -126,6 +137,7 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
                                     UInt32							inNumberPackets,
                                     const void *					inInputData,
                                     AudioStreamPacketDescription	*inPacketDescriptions){
+    LXLog(@"");
     LXAudioPlayer *player = (__bridge LXAudioPlayer*)inClientData;
     
     //get maximum buffer size
@@ -135,6 +147,13 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
                               kAudioConverterPropertyMinimumOutputBufferSize,
                               &size,
                               &maxBufferSize);
+    
+    //define input data of audio converter
+    AudioConverterStruct converterStruct = {0};
+    converterStruct.inData = (UInt16*)inInputData;
+    converterStruct.dataFrameCount = inNumberBytes;
+    
+    //define output data of audio converter
     AudioBufferList bufferList;
     bufferList.mNumberBuffers = 1;
     bufferList.mBuffers[0].mNumberChannels = player.canonicalFormat.mChannelsPerFrame;
@@ -142,7 +161,7 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
     bufferList.mBuffers[0].mData = malloc(maxBufferSize*sizeof(UInt16));
     handleError(AudioConverterFillComplexBuffer(player.audioConverter,
                                                 MyAudioConverterComplexInputDataProc,
-                                                 (__bridge void*)player,
+                                                &converterStruct,
                                                 &inNumberPackets,
                                                 &bufferList,
                                                 NULL),
@@ -218,12 +237,13 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
     handleError(AudioFileStreamOpen((__bridge void*)self,
                                     MyAudioFileStream_PropertyListenerProc,
                                     MyAudioFileStream_PacketsProc,
-                                    0,//TODO:define file type hint with file extension
+                                    0,//TODO:define file type hint based on file extension
                                     &localStream),
                 "failed to open audio file stream",
                 ^{
                     
                 });
+    self.stream = localStream;
 }
 
 - (void)setupAudioConverterWithSourceFormat:(AudioStreamBasicDescription *)sourceFormat{
@@ -344,9 +364,37 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
             
             break;
         
-        case NSStreamEventHasBytesAvailable:
+        case NSStreamEventHasBytesAvailable:{
+            //LXLog(@"read from NSInputStream");
+            //read from input file
+            //TODO:figure out buffer size
+            UInt32 bufferSize = 1024;
+            UInt8 inputBuffer[bufferSize];
+            NSInteger readLength;
+            if (self.inputStream.hasBytesAvailable) {
+                readLength = [self.inputStream read:inputBuffer
+                                          maxLength:bufferSize];
+                NSLog(@"read length:%ld",(long)readLength);
+            }else{
+                NSLog(@"input stream has no data available");
+            }
+            
+            //copy buffer to ioData
+//            for (int i=0; i<bufferSize; i++) {
+//                AudioBuffer buffer = ioData->mBuffers[i];
+//                buffer.mDataByteSize = inNumberFrames;
+//                buffer.mNumberChannels = 1;
+//                buffer.mData = malloc(inNumberFrames*sizeof(UInt8));
+//                memcpy(&buffer, inputBuffer, inNumberFrames*sizeof(UInt8));
+//            }
+            
+            AudioFileStreamParseBytes(self.stream,
+                                      (UInt32)readLength,
+                                      inputBuffer,
+                                      0);
             
             break;
+        }
         case NSStreamEventErrorOccurred:
             
             break;
