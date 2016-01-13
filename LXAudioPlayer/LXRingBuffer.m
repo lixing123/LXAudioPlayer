@@ -10,6 +10,7 @@
 
 @interface LXRingBuffer (){
     AudioBufferList audioBufferList;
+    //TODO: it seems that using multiple AudioBuffer is also possible
     AudioBuffer *audioBuffer;
     
     UInt32 totalFrameCount;
@@ -40,15 +41,36 @@
 }
 
 - (BOOL)euqueueData:(void *)data dataByteLength:(UInt32)dataByteLength {
-    //if available bytes space is smaller than size of inserted data, then return NO
+    //if available bytes space is smaller than size of inserted data, return NO
     UInt32 bytesAvailable = (totalFrameCount - currentUsedFrameCount) * bytesPerFrame;
     if (bytesAvailable<dataByteLength) {
         return NO;
     }
     
+    //does buffer has a continuous space to save audio?
+    BOOL hasContinuousSpace = NO;
+    if (currentFrameIndex+currentUsedFrameCount>totalFrameCount) {
+        hasContinuousSpace = YES;
+    }else if ((totalFrameCount-currentFrameIndex-currentUsedFrameCount)*bytesPerFrame>dataByteLength){
+        hasContinuousSpace = YES;
+    }
     
+    UInt32 end = (currentFrameIndex+currentUsedFrameCount)%totalFrameCount;
     
-    return NO;
+    //if buffer has a continuous space to save data, just save data
+    if (hasContinuousSpace) {
+        memcpy(audioBuffer->mData+end*bytesPerFrame, data, dataByteLength);
+    }else{
+        //first, copy part of data to the end of buffer
+        memcpy(audioBuffer->mData+end*bytesPerFrame, data, (totalFrameCount-end)*bytesPerFrame);
+        //second, copy remaining of data to the start of buffer
+        UInt32 remainingSize = dataByteLength-(totalFrameCount-end)*bytesPerFrame;
+        memcpy(audioBuffer->mData, data+(totalFrameCount-end)*bytesPerFrame, remainingSize);
+    }
+    
+    currentUsedFrameCount += dataByteLength/bytesPerFrame;
+    
+    return YES;
 }
 
 - (BOOL)dequeueData:(void *)data dataByteLength:(UInt32)dataByteLength {
