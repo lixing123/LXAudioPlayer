@@ -13,8 +13,12 @@
 
 - (id)initWithDataPCMFormat:(AudioStreamBasicDescription)pcmFormat seconds:(float)seconds;
 
-- (BOOL)euqueueData:(void *)data dataByteLength:(UInt32)dataByteLength;
+- (BOOL)hasSpaceAvailableForDequeue:(UInt32)spaceSize;
 
-- (BOOL)dequeueData:(void *)data dataByteLength:(UInt32)dataByteLength;
+- (BOOL)hasDataAvailableForEnqueue:(UInt32)dataSize;
+
+- (BOOL)euqueueData:(void *)data dataByteLength:(UInt32)dataByteSize;
+
+- (BOOL)dequeueData:(void *)data dataByteLength:(UInt32)dataByteSize;
 
 @end

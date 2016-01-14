@@ -28,6 +28,8 @@
 //the playback position, in seconds
 @property(readonly) NSTimeInterval currentTime;
 
+//TODO:initWithBufferSizeSeconds
+
 - (id)initWithURL:(NSURL *)url;
 
 - (void)play;
