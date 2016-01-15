@@ -49,15 +49,24 @@
     return self;
 }
 
+- (BOOL)needToBeFilled {
+    OSSpinLockLock(&spinLock);
+    BOOL result = (currentUsedFrameCount/totalFrameCount>0.7);
+    OSSpinLockUnlock(&spinLock);
+    return result;
+}
+
 - (BOOL)hasSpaceAvailableForDequeue:(UInt32)spaceSize {
-    UInt32 used  = currentUsedFrameCount;
-    
-    BOOL result = (totalFrameCount-used) * bytesPerFrame >= spaceSize;
+    OSSpinLockLock(&spinLock);
+    BOOL result = (totalFrameCount-currentUsedFrameCount) * bytesPerFrame >= spaceSize;
+    OSSpinLockUnlock(&spinLock);
     return result;
 }
 
 - (BOOL)hasDataAvailableForEnqueue:(UInt32)dataSize {
+    OSSpinLockLock(&spinLock);
     BOOL result = currentUsedFrameCount * bytesPerFrame >= dataSize;
+    OSSpinLockUnlock(&spinLock);
     return result;
 }
 
@@ -67,8 +76,10 @@
         return NO;
     }
     
+    OSSpinLockLock(&spinLock);
     UInt32 start = currentFrameIndex;
     UInt32 used  = currentUsedFrameCount;
+    OSSpinLockUnlock(&spinLock);
     
     LXLog(@"ring buffer status before enqueue:startIndex:%d     framesUsed:%d     data size:%d",start,used,dataByteSize);
     
@@ -82,24 +93,25 @@
     UInt32 end = (start+used)%totalFrameCount;
 
     //if buffer has a continuous space to save data, just save data
+    //TODO:add pthread lock
     if (hasContinuousSpace) {
         memcpy(audioBuffer->mData+end*bytesPerFrame, data, dataByteSize);
     }
-    //else{
-//        //first, copy part of data to the end of buffer
-//        memcpy(audioBuffer->mData+end*bytesPerFrame, data, (totalFrameCount-end)*bytesPerFrame);
-//        //second, copy remaining of data to the start of buffer
-//        LXLog(@"bytes used 3:%d",used);
-//        UInt32 remainingSize = dataByteSize-(totalFrameCount-end)*bytesPerFrame;
-//        memcpy(audioBuffer->mData, data+(totalFrameCount-end)*bytesPerFrame, remainingSize);
-//        LXLog(@"bytes used 4:%d",used);
-//    }
-//    
+    else{
+        //first, copy part of data to the end of buffer
+        memcpy(audioBuffer->mData+end*bytesPerFrame, data, (totalFrameCount-end)*bytesPerFrame);
+        //second, copy remaining of data to the start of buffer
+        LXLog(@"bytes used 3:%d",used);
+        UInt32 remainingSize = dataByteSize-(totalFrameCount-end)*bytesPerFrame;
+        memcpy(audioBuffer->mData, data+(totalFrameCount-end)*bytesPerFrame, remainingSize);
+        LXLog(@"bytes used 4:%d",used);
+    }
+    
     OSSpinLockLock(&spinLock);
-    //currentUsedFrameCount = currentUsedFrameCount + dataByteSize/bytesPerFrame;
-    OSSpinLockUnlock(&spinLock);
-    //used = currentUsedFrameCount;
+    currentUsedFrameCount = currentUsedFrameCount + dataByteSize/bytesPerFrame;
+    used = currentUsedFrameCount;
     LXLog(@"ring buffer status after enqueue:startIndex:%d     framesUsed:%d",start,used);
+    OSSpinLockUnlock(&spinLock);
     return YES;
 }
 
