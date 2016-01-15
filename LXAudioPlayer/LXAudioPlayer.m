@@ -383,6 +383,7 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
             UInt8 inputBuffer[bufferSize];
             NSInteger readLength;
             if (self.inputStream.hasBytesAvailable) {
+                NSLog(@"NSStreamEventHasBytesAvailable");
                 //this may lead to 
                 readLength = [self.inputStream read:inputBuffer
                                           maxLength:bufferSize];

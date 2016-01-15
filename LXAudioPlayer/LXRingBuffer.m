@@ -36,7 +36,8 @@
         UInt32 bufferSize = pcmFormat.mSampleRate * seconds * pcmFormat.mBytesPerFrame;
         audioBuffer = &audioBufferList.mBuffers[0];
         audioBufferList.mBuffers[0].mDataByteSize = bufferSize;
-        audioBufferList.mBuffers[0].mNumberChannels = pcmFormat.mChannelsPerFrame;
+        //audioBufferList.mBuffers[0].mNumberChannels = pcmFormat.mChannelsPerFrame;
+        audioBufferList.mBuffers[0].mNumberChannels = 1;
         audioBufferList.mBuffers[0].mData = (void*)calloc(bufferSize, 0);
         
         bytesPerFrame = pcmFormat.mBytesPerFrame;
