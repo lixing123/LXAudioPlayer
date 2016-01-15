@@ -90,12 +90,13 @@ OSStatus MyAudioConverterComplexInputDataProc(AudioConverterRef               in
                                               AudioBufferList *               ioData,
                                               AudioStreamPacketDescription * __nullable * __nullable outDataPacketDescription,
                                               void * __nullable               inUserData){
-    //LXLog(@"MyAudioConverterComplexInputDataProc");
+    LXLog(@"MyAudioConverterComplexInputDataProc");
     //supplies input data to AudioConverter and let the converter convert to PCM format
     AudioConverterStruct *converterStruct = (AudioConverterStruct*)inUserData;
-//    if (converterStruct->used) {
-//        return noErr;
-//    }
+    if (converterStruct->used) {
+        LXLog(@"data used");
+        return 100;
+    }
     
     ioData->mNumberBuffers = 1;
     ioData->mBuffers[0].mDataByteSize = converterStruct->dataFrameCount;
@@ -139,7 +140,6 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
                                     const void *					inInputData,
                                     AudioStreamPacketDescription	*inPacketDescriptions){
     LXLog(@"%s",__func__);
-    [NSThread sleepForTimeInterval:5.0];
     LXAudioPlayer *player = (__bridge LXAudioPlayer*)inClientData;
     
     UInt32 maxBufferSize = 1024;
@@ -153,25 +153,26 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
     
     //define output data of audio converter
     //TODO:every time push data to AudioConverter, call for AudioConverterFillComplexBuffer for multiple times until all output data has been got
-//    while (1) {
-//        AudioBufferList bufferList;
-//        bufferList.mNumberBuffers = 1;
-//        bufferList.mBuffers[0].mNumberChannels = player.canonicalFormat.mChannelsPerFrame;
-//        bufferList.mBuffers[0].mDataByteSize = maxBufferSize;
-//        bufferList.mBuffers[0].mData = malloc(maxBufferSize*sizeof(UInt16));
-//        handleError(AudioConverterFillComplexBuffer(player.audioConverter,
-//                                                    MyAudioConverterComplexInputDataProc,
-//                                                    &converterStruct,
-//                                                    &inNumberBytes,
-//                                                    &bufferList,
-//                                                    NULL),
-//                    "AudioConverterFillComplexBuffer failed",
-//                    ^{
-//                        
-//                    });
-//        //LXLog(@"after AudioConverterFillComplexBuffer");
-//        
-//        //store bufferList
+    while (1) {
+        //TODO:this kind of allocate AudioBufferList may lead to EXC_BAD_ACCESS, try to fix
+        AudioBufferList bufferList;
+        bufferList.mNumberBuffers = 1;
+        bufferList.mBuffers[0].mNumberChannels = player.canonicalFormat.mChannelsPerFrame;
+        bufferList.mBuffers[0].mDataByteSize = maxBufferSize;
+        bufferList.mBuffers[0].mData = malloc(maxBufferSize*sizeof(UInt16));
+        handleError(AudioConverterFillComplexBuffer(player.audioConverter,
+                                                    MyAudioConverterComplexInputDataProc,
+                                                    &converterStruct,
+                                                    &inNumberBytes,
+                                                    &bufferList,
+                                                    NULL),
+                    "AudioConverterFillComplexBuffer failed",
+                    ^{
+                        
+                    });
+        NSLog(@"after AudioConverterFillComplexBuffer");
+        
+        //store bufferList
 //        if ([player.ringBuffer hasSpaceAvailableForDequeue:bufferList.mBuffers[0].mDataByteSize]) {
 //            BOOL enqueueResult = [player.ringBuffer euqueueData:bufferList.mBuffers[0].mData
 //                                                 dataByteLength:bufferList.mBuffers[0].mDataByteSize];
@@ -179,7 +180,7 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
 //        }else{
 //            LXLog(@"no space for enqueue data");
 //        }
-//    }
+    }
 }
 
 @implementation LXAudioPlayer
@@ -243,17 +244,15 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
 }
 
 - (void)setupAudioFileStreamService{
-    AudioFileStreamID localStream;
     handleError(AudioFileStreamOpen((__bridge void*)self,
                                     MyAudioFileStream_PropertyListenerProc,
                                     MyAudioFileStream_PacketsProc,
                                     0,//TODO:define file type hint based on file extension
-                                    &localStream),
+                                    &_stream),
                 "failed to open audio file stream",
                 ^{
                     
                 });
-    self.stream = localStream;
 }
 
 - (void)setupAudioConverterWithSourceFormat:(AudioStreamBasicDescription *)sourceFormat{
@@ -383,8 +382,6 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
             UInt8 inputBuffer[bufferSize];
             NSInteger readLength;
             if (self.inputStream.hasBytesAvailable) {
-                NSLog(@"NSStreamEventHasBytesAvailable");
-                //this may lead to 
                 readLength = [self.inputStream read:inputBuffer
                                           maxLength:bufferSize];
                 //LXLog(@"read length:%ld",(long)readLength);
@@ -401,12 +398,11 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
 //                memcpy(&buffer, inputBuffer, inNumberFrames*sizeof(UInt8));
 //            }
             
-            LXLog(@"before AudioFileStreamParseBytes");
+            LXLog(@"AudioFileStreamParseBytes");
             AudioFileStreamParseBytes(self.stream,
                                       (UInt32)readLength,
                                       inputBuffer,
                                       0);
-            LXLog(@"after AudioFileStreamParseBytes");
             
             break;
         }
