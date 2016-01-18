@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		813AECB41C4B7F8100211D40 /* AudioToolbox.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 813AECB31C4B7F8100211D40 /* AudioToolbox.framework */; };
 		8E08C5A01C438CE200A8EF2C /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 8E08C59F1C438CE200A8EF2C /* main.m */; };
 		8E08C5A31C438CE200A8EF2C /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 8E08C5A21C438CE200A8EF2C /* AppDelegate.m */; };
 		8E08C5A61C438CE200A8EF2C /* ViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 8E08C5A51C438CE200A8EF2C /* ViewController.m */; };
@@ -30,6 +31,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		813AECB31C4B7F8100211D40 /* AudioToolbox.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AudioToolbox.framework; path = System/Library/Frameworks/AudioToolbox.framework; sourceTree = SDKROOT; };
 		8E08C59B1C438CE200A8EF2C /* LXAudioPlayer.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = LXAudioPlayer.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		8E08C59F1C438CE200A8EF2C /* main.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; };
 		8E08C5A11C438CE200A8EF2C /* AppDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = AppDelegate.h; sourceTree = "<group>"; };
@@ -56,6 +58,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				813AECB41C4B7F8100211D40 /* AudioToolbox.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -72,6 +75,7 @@
 		8E08C5921C438CE200A8EF2C = {
 			isa = PBXGroup;
 			children = (
+				813AECB31C4B7F8100211D40 /* AudioToolbox.framework */,
 				8E08C59D1C438CE200A8EF2C /* LXAudioPlayer */,
 				8E08C5CA1C473D9000A8EF2C /* LXAudioPlayerTests */,
 				8E08C59C1C438CE200A8EF2C /* Products */,
