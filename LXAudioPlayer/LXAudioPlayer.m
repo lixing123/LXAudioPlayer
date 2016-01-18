@@ -147,8 +147,6 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
     LXLog(@"%s",__func__);
     LXAudioPlayer *player = (__bridge LXAudioPlayer*)inClientData;
     
-    UInt32 maxBufferSize = 1024;
-    
     //define input data of audio converter
     AudioConverterStruct converterStruct = {0};
     converterStruct.audioBuffer.mData = (void*)inInputData;
@@ -161,6 +159,7 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
     //TODO:every time push data to AudioConverter, call for AudioConverterFillComplexBuffer for multiple times until all output data has been got
     while (1) {
         //TODO:this kind of allocate AudioBufferList may lead to EXC_BAD_ACCESS, try to fix
+        UInt32 maxBufferSize = 1024;
         AudioBufferList bufferList;
         bufferList.mNumberBuffers = 1;
         AudioBuffer *buffer = &bufferList.mBuffers[0];
@@ -174,7 +173,7 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
                                                           &bufferList,
                                                           NULL);
         NSLog(@"after AudioConverterFillComplexBuffer");
-        NSLog(@"max buffer size:%d",maxBufferSize);
+        NSLog(@"converted buffer size:%d",maxBufferSize);
         
         if (result==noErr) {
             //store bufferList
@@ -401,12 +400,12 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
             //read from input file
             //TODO:figure out buffer size
             UInt32 bufferSize = 1024;
-            UInt8 inputBuffer[bufferSize];
+            UInt8 *inputBuffer = calloc(sizeof(UInt8), bufferSize);
             NSInteger readLength;
             if (self.inputStream.hasBytesAvailable) {
                 readLength = [self.inputStream read:inputBuffer
                                           maxLength:bufferSize];
-                //LXLog(@"read length:%ld",(long)readLength);
+                LXLog(@"read length:%ld",(long)readLength);
             }else{
                 LXLog(@"input stream has no data available");
             }
