@@ -16,9 +16,9 @@
 //specify whether the ring buffer needs data
 - (BOOL)needToBeFilled;
 
-- (BOOL)hasSpaceAvailableForDequeue:(UInt32)spaceSize;
+- (BOOL)hasSpaceAvailableForEnqueue:(UInt32)spaceSize;
 
-- (BOOL)hasDataAvailableForEnqueue:(UInt32)dataSize;
+- (BOOL)hasDataAvailableForDequeue:(UInt32)dataSize;
 
 - (BOOL)euqueueData:(void *)data dataByteLength:(UInt32)dataByteSize;
 
