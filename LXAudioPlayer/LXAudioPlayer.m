@@ -20,6 +20,15 @@ typedef struct AudioConverterStruct{
     BOOL used;
 }AudioConverterStruct;
 
+typedef struct
+{
+    BOOL done;
+    UInt32 numberOfPackets;
+    AudioBuffer audioBuffer;
+    AudioStreamPacketDescription* packetDescriptions;
+}
+AudioConvertInfo;
+
 static void handleError(OSStatus result, const char *failReason, failOperation operation)
 {
     if (result == noErr) return;
@@ -91,27 +100,52 @@ OSStatus MyAudioConverterComplexInputDataProc(AudioConverterRef               in
                                               AudioBufferList *               ioData,
                                               AudioStreamPacketDescription * __nullable * __nullable outDataPacketDescription,
                                               void * __nullable               inUserData){
-    LXLog(@"MyAudioConverterComplexInputDataProc");
-    //supplies input data to AudioConverter and let the converter convert to PCM format
-    AudioConverterStruct *converterStruct = (AudioConverterStruct*)inUserData;
-    if (converterStruct->used) {
-        LXLog(@"data used");
+//    LXLog(@"MyAudioConverterComplexInputDataProc");
+//    //supplies input data to AudioConverter and let the converter convert to PCM format
+//    AudioConverterStruct *converterStruct = (AudioConverterStruct*)inUserData;
+//    if (converterStruct->used) {
+//        LXLog(@"data used");
+//        return 100;
+//    }
+//    
+//    ioData->mNumberBuffers = 1;
+//    ioData->mBuffers[0] = converterStruct->audioBuffer;
+//    //ioData->mBuffers[0].mDataByteSize = converterStruct->dataByteCount;
+//    //ioData->mBuffers[0].mNumberChannels = 1;
+//    //ioData->mBuffers[0].mData = converterStruct->inData;
+//    //ioData->mBuffers[0].mData = malloc(sizeof(UInt32)*converterStruct->dataByteCount);
+//    //memcpy(ioData->mBuffers[0].mData, converterStruct->inData, converterStruct->dataByteCount);
+//    //memcpy(ioData->mBuffers[0].mData, converterStruct->inData, ioData->mBuffers[0].mDataByteSize);
+//
+//    *ioNumberDataPackets = converterStruct->packetCount;
+//    *outDataPacketDescription = converterStruct->packetDescriptions;
+//    
+//    return noErr;
+    
+    NSLog(@"%s",__func__);
+    
+    AudioConvertInfo* convertInfo = (AudioConvertInfo*)inUserData;
+    
+    if (convertInfo->done)
+    {
+        ioNumberDataPackets = 0;
+        
         return 100;
     }
     
     ioData->mNumberBuffers = 1;
-    ioData->mBuffers[0] = converterStruct->audioBuffer;
-    //ioData->mBuffers[0].mDataByteSize = converterStruct->dataByteCount;
-    //ioData->mBuffers[0].mNumberChannels = 1;
-    //ioData->mBuffers[0].mData = converterStruct->inData;
-    //ioData->mBuffers[0].mData = malloc(sizeof(UInt32)*converterStruct->dataByteCount);
-    //memcpy(ioData->mBuffers[0].mData, converterStruct->inData, converterStruct->dataByteCount);
-    //memcpy(ioData->mBuffers[0].mData, converterStruct->inData, ioData->mBuffers[0].mDataByteSize);
-
-    *ioNumberDataPackets = converterStruct->packetCount;
-    *outDataPacketDescription = converterStruct->packetDescriptions;
+    //将audioBuffer拷贝到converter的output中
+    ioData->mBuffers[0] = convertInfo->audioBuffer;
     
-    return noErr;
+    if (outDataPacketDescription)
+    {
+        *outDataPacketDescription = convertInfo->packetDescriptions;
+    }
+    
+    *ioNumberDataPackets = convertInfo->numberOfPackets;
+    convertInfo->done = YES;
+    
+    return 0;
 }
 
 void MyAudioFileStream_PropertyListenerProc(void *							inClientData,
@@ -148,17 +182,25 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
     LXAudioPlayer *player = (__bridge LXAudioPlayer*)inClientData;
     
     //define input data of audio converter
-    AudioConverterStruct converterStruct = {0};
-    converterStruct.audioBuffer.mData = (void*)inInputData;
-    converterStruct.audioBuffer.mDataByteSize = inNumberBytes;
-    converterStruct.audioBuffer.mNumberChannels = player.converterInputFormat.mChannelsPerFrame;
-    converterStruct.packetCount = inNumberPackets;
-    converterStruct.packetDescriptions = inPacketDescriptions;
+//    AudioConverterStruct converterStruct = {0};
+//    converterStruct.audioBuffer.mData = (void*)inInputData;
+//    converterStruct.audioBuffer.mDataByteSize = inNumberBytes;
+//    converterStruct.audioBuffer.mNumberChannels = player.converterInputFormat.mChannelsPerFrame;
+//    converterStruct.packetCount = inNumberPackets;
+//    converterStruct.packetDescriptions = inPacketDescriptions;
+    
+    AudioConvertInfo convertInfo;
+    
+    convertInfo.done = NO;
+    convertInfo.numberOfPackets = inNumberPackets   ;
+    convertInfo.packetDescriptions = inPacketDescriptions;
+    convertInfo.audioBuffer.mData = (void *)inInputData;
+    convertInfo.audioBuffer.mDataByteSize = inNumberBytes;
+    convertInfo.audioBuffer.mNumberChannels = player.converterInputFormat.mChannelsPerFrame;
     
     //define output data of audio converter
     //TODO:every time push data to AudioConverter, call for AudioConverterFillComplexBuffer for multiple times until all output data has been got
     while (1) {
-        //TODO:this kind of allocate AudioBufferList may lead to EXC_BAD_ACCESS, try to fix
         UInt32 maxBufferSize = 1024;
         AudioBufferList bufferList;
         bufferList.mNumberBuffers = 1;
@@ -168,7 +210,7 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
         buffer->mData = malloc(maxBufferSize*sizeof(UInt8));
         OSStatus result = AudioConverterFillComplexBuffer(player.audioConverter,
                                                           MyAudioConverterComplexInputDataProc,
-                                                          &converterStruct,
+                                                          &convertInfo,
                                                           &maxBufferSize,
                                                           &bufferList,
                                                           NULL);
@@ -177,13 +219,13 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
         
         if (result==noErr) {
             //store bufferList
-            if ([player.ringBuffer hasSpaceAvailableForDequeue:buffer->mDataByteSize]) {
-                BOOL enqueueResult = [player.ringBuffer euqueueData:buffer->mData
-                                                     dataByteLength:maxBufferSize];
-                LXLog(@"enqueue data %@",enqueueResult?@"succeed":@"failed");
-            }else{
-                LXLog(@"no space for enqueue data");
-            }
+//            if ([player.ringBuffer hasSpaceAvailableForDequeue:buffer->mDataByteSize]) {
+//                BOOL enqueueResult = [player.ringBuffer euqueueData:buffer->mData
+//                                                     dataByteLength:maxBufferSize];
+//                LXLog(@"enqueue data %@",enqueueResult?@"succeed":@"failed");
+//            }else{
+//                LXLog(@"no space for enqueue data");
+//            }
         }else if (result==100){//need data from AudioFileStream
             NSLog(@"need data from AudioFileStream");
             return;
