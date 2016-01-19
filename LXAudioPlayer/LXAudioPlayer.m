@@ -152,7 +152,7 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
                                     UInt32							inNumberPackets,
                                     const void *					inInputData,
                                     AudioStreamPacketDescription	*inPacketDescriptions){
-    LXLog(@"%s",__func__);
+    //LXLog(@"%s",__func__);
     LXAudioPlayer *player = (__bridge LXAudioPlayer*)inClientData;
     
     //define input data of audio converter
@@ -187,10 +187,10 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
             //store bufferList
             if ([player.ringBuffer hasSpaceAvailableForEnqueue:buffer->mDataByteSize]) {
                 BOOL enqueueResult = [player.ringBuffer euqueueData:buffer->mData
-                                                     dataByteLength:maxBufferSize];
+                                                     dataByteLength:maxBufferSize*player.canonicalFormat.mBytesPerFrame];
                 //LXLog(@"enqueue data %@",enqueueResult?@"succeed":@"failed");
             }else{
-                LXLog(@"no space for enqueue data");
+                //LXLog(@"no space for enqueue data");
             }
         }else if (result==100){//need data from AudioFileStream
             //LXLog(@"need data from AudioFileStream");
@@ -294,8 +294,7 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
     //create RemoteIO audio unit
     AudioComponentDescription remoteIODescription = {0};
     remoteIODescription.componentType = kAudioUnitType_Output;
-//    remoteIODescription.componentSubType = kAudioUnitSubType_RemoteIO;
-    remoteIODescription.componentSubType = kAudioUnitSubType_GenericOutput;
+    remoteIODescription.componentSubType = kAudioUnitSubType_RemoteIO;
     remoteIODescription.componentManufacturer = kAudioUnitManufacturer_Apple;
     
     AUNode remoteIONode;
@@ -359,7 +358,7 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
     self.canonicalFormat = streamFormat;
     
     //init ring buffer
-    self.ringBuffer = [[LXRingBuffer alloc] initWithDataPCMFormat:self.canonicalFormat seconds:5.0];
+    self.ringBuffer = [[LXRingBuffer alloc] initWithDataPCMFormat:self.canonicalFormat seconds:50.0];
     
     //set render callback of remoteIO unit
     AURenderCallbackStruct callbackStruct;
