@@ -37,7 +37,7 @@
         audioBufferList.mNumberBuffers = 1;
         audioBufferList.mBuffers[0].mDataByteSize = bufferSize;
         //TODO:AudioBufferList.mNumberChannels should always 1???
-        audioBufferList.mBuffers[0].mNumberChannels = 1;
+        audioBufferList.mBuffers[0].mNumberChannels = 2;
         audioBufferList.mBuffers[0].mData = (void*)calloc(audioBuffer->mDataByteSize, 1);
         
         totalByteCount = bufferSize;
@@ -81,7 +81,7 @@
     UInt32 used = currentUsedByteCount;
     OSSpinLockUnlock(&spinLock);
     
-    LXLog(@"ring buffer status before enqueue:startIndex:%d     framesUsed:%d     data size:%d",start,used,dataByteSize);
+    //LXLog(@"ring buffer status before enqueue:startIndex:%d     framesUsed:%d     data size:%d",start,used,dataByteSize);
     
     //does buffer has a continuous space to save audio?
     BOOL hasContinuousSpace = NO;
@@ -111,7 +111,7 @@
     OSSpinLockLock(&spinLock);
     currentUsedByteCount += dataByteSize;
     used = currentUsedByteCount;
-    LXLog(@"ring buffer status after enqueue:startIndex:%d     framesUsed:%d",start,used);
+    //LXLog(@"ring buffer status after enqueue:startIndex:%d     framesUsed:%d",start,used);
     OSSpinLockUnlock(&spinLock);
     return YES;
 }
@@ -148,7 +148,7 @@
     currentByteIndex = (currentByteIndex+dataByteSize)%totalByteCount;
     currentUsedByteCount -= dataByteSize;
     //OSSpinLockLock(&spinLock);
-    LXLog(@"ring buffer status: startIndex:%d     framesUsed:%d",currentByteIndex,currentUsedByteCount);
+    //LXLog(@"ring buffer status: startIndex:%d     framesUsed:%d",currentByteIndex,currentUsedByteCount);
     
     return NO;
 }

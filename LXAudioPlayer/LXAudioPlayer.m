@@ -96,7 +96,6 @@ OSStatus MyAudioConverterComplexInputDataProc(AudioConverterRef               in
                                               AudioBufferList *               ioData,
                                               AudioStreamPacketDescription * __nullable * __nullable outDataPacketDescription,
                                               void * __nullable               inUserData){
-    //LXLog(@"MyAudioConverterComplexInputDataProc");
     //supplies input data to AudioConverter and let the converter convert to PCM format
     AudioConvertInfo* convertInfo = (AudioConvertInfo*)inUserData;
     
@@ -152,7 +151,6 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
                                     UInt32							inNumberPackets,
                                     const void *					inInputData,
                                     AudioStreamPacketDescription	*inPacketDescriptions){
-    //LXLog(@"%s",__func__);
     LXAudioPlayer *player = (__bridge LXAudioPlayer*)inClientData;
     
     //define input data of audio converter
@@ -180,23 +178,21 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
                                                           &maxBufferSize,
                                                           &bufferList,
                                                           NULL);
-        //LXLog(@"after AudioConverterFillComplexBuffer");
-        //LXLog(@"converted buffer size:%d",maxBufferSize);
-        
         if (result==0) {
             //store bufferList
             if ([player.ringBuffer hasSpaceAvailableForEnqueue:buffer->mDataByteSize]) {
                 BOOL enqueueResult = [player.ringBuffer euqueueData:buffer->mData
                                                      dataByteLength:maxBufferSize*player.canonicalFormat.mBytesPerFrame];
-                //LXLog(@"enqueue data %@",enqueueResult?@"succeed":@"failed");
+                continue;
             }else{
-                //LXLog(@"no space for enqueue data");
             }
         }else if (result==100){//need data from AudioFileStream
-            //LXLog(@"need data from AudioFileStream");
+            if ([player.ringBuffer hasSpaceAvailableForEnqueue:buffer->mDataByteSize]) {
+                BOOL enqueueResult = [player.ringBuffer euqueueData:buffer->mData
+                                                     dataByteLength:maxBufferSize*player.canonicalFormat.mBytesPerFrame];
+            }
             return;
-        }else{//
-            //LXLog(@"AudioConverterFillComplexBuffer error:%d",result);
+        }else{//error
             return;
         }
     }
@@ -227,7 +223,6 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
                 ^{
                     
                 });
-    LXLog(@"play");
 }
 
 - (void)pause {
@@ -397,7 +392,8 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
         case NSStreamEventHasBytesAvailable:{
             //read from input file
             //TODO:figure out buffer size
-            UInt32 bufferSize = 1024;
+            //UInt32 bufferSize = 64 * 1024;
+            UInt32 bufferSize = 128;
             UInt8 *inputBuffer = calloc(sizeof(UInt8), bufferSize);
             NSInteger readLength;
             if (self.inputStream.hasBytesAvailable) {
