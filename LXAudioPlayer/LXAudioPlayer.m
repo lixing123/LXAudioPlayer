@@ -77,7 +77,8 @@ static OSStatus RemoteIOUnitCallback(void *							inRefCon,
     //read from ring buffer
     UInt32 ioDataByteSize = inNumberFrames*player.canonicalFormat.mBytesPerFrame;
     if ([player.ringBuffer hasDataAvailableForDequeue:ioDataByteSize]) {
-        [player.ringBuffer dequeueData:ioData->mBuffers[0].mData dataByteLength:ioDataByteSize];
+        [player.ringBuffer dequeueData:ioData->mBuffers[0].mData
+                        dataByteLength:ioDataByteSize];
         ioData->mBuffers[0].mDataByteSize = ioDataByteSize;
         ioData->mBuffers[0].mNumberChannels = 1;
         ioData->mNumberBuffers = 1;
@@ -182,14 +183,14 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
             //store bufferList
             if ([player.ringBuffer hasSpaceAvailableForEnqueue:buffer->mDataByteSize]) {
                 BOOL enqueueResult = [player.ringBuffer euqueueData:buffer->mData
-                                                     dataByteLength:maxBufferSize*player.canonicalFormat.mBytesPerFrame];
+                                                     dataByteLength:buffer->mDataByteSize];
                 continue;
             }else{
             }
         }else if (result==100){//need data from AudioFileStream
             if ([player.ringBuffer hasSpaceAvailableForEnqueue:buffer->mDataByteSize]) {
                 BOOL enqueueResult = [player.ringBuffer euqueueData:buffer->mData
-                                                     dataByteLength:maxBufferSize*player.canonicalFormat.mBytesPerFrame];
+                                                     dataByteLength:buffer->mDataByteSize];
             }
             return;
         }else{//error
@@ -353,7 +354,7 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
     self.canonicalFormat = streamFormat;
     
     //init ring buffer
-    self.ringBuffer = [[LXRingBuffer alloc] initWithDataPCMFormat:self.canonicalFormat seconds:50.0];
+    self.ringBuffer = [[LXRingBuffer alloc] initWithDataPCMFormat:self.canonicalFormat seconds:1.0];
     
     //set render callback of remoteIO unit
     AURenderCallbackStruct callbackStruct;
@@ -382,40 +383,57 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
 
 - (void)stream:(NSStream *)aStream handleEvent:(NSStreamEvent)eventCode {
     switch (eventCode) {
-        case NSStreamEventNone:
-            
+        case NSStreamEventNone:{
+            NSLog(@"stream event none");
             break;
-        case NSStreamEventOpenCompleted:
-            
+        }
+        case NSStreamEventOpenCompleted:{
+            NSLog(@"stream event open complete");
             break;
-            
+        }
         case NSStreamEventHasBytesAvailable:{
             //read from input file
-            //TODO:figure out buffer size
-            //UInt32 bufferSize = 64 * 1024;
-            UInt32 bufferSize = 128;
-            UInt8 *inputBuffer = calloc(sizeof(UInt8), bufferSize);
-            NSInteger readLength;
-            if (self.inputStream.hasBytesAvailable) {
+            //TODO:compare this method with blocking thread
+            if ([self.ringBuffer needToBeFilled]) {
+                if (self.inputStream.hasBytesAvailable) {
+                    //TODO:figure out buffer size
+                    UInt32 bufferSize = 1024 * 4;
+                    UInt8 *inputBuffer = calloc(sizeof(UInt8)*bufferSize, 1);
+                    NSInteger readLength;
+                    
+                    readLength = [self.inputStream read:inputBuffer
+                                              maxLength:bufferSize];
+                    
+                    AudioFileStreamParseBytes(self.stream,
+                                              (UInt32)readLength,
+                                              inputBuffer,
+                                              0);
+                }
+            }else {
+                //TODO:fix this bug
+                UInt32 bufferSize = 1;
+                UInt8 *inputBuffer = calloc(sizeof(UInt8)*bufferSize, 1);
+                NSInteger readLength;
+                
                 readLength = [self.inputStream read:inputBuffer
                                           maxLength:bufferSize];
-            }else{
-                LXLog(@"input stream has no data available");
+                
+                AudioFileStreamParseBytes(self.stream,
+                                          (UInt32)readLength,
+                                          inputBuffer,
+                                          0);
             }
-            
-            AudioFileStreamParseBytes(self.stream,
-                                      (UInt32)readLength,
-                                      inputBuffer,
-                                      0);
             
             break;
         }
-        case NSStreamEventErrorOccurred:
-            
+        case NSStreamEventErrorOccurred:{
+            NSLog(@"stream event error");
             break;
-        case NSStreamEventEndEncountered:
-            
+        }
+        case NSStreamEventEndEncountered:{
+            NSLog(@"stream event end");
             break;
+        }
         default:
             break;
     }
