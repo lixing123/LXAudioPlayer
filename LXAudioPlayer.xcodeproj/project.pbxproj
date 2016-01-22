@@ -18,11 +18,7 @@
 		8E08C5BB1C43A9D400A8EF2C /* test.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = 8E08C5BA1C43A9D400A8EF2C /* test.mp3 */; };
 		8E08C5BF1C46274500A8EF2C /* LXRingBuffer.m in Sources */ = {isa = PBXBuildFile; fileRef = 8E08C5BE1C46274500A8EF2C /* LXRingBuffer.m */; };
 		8E08C5CC1C473D9000A8EF2C /* LXAudioPlayerTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 8E08C5CB1C473D9000A8EF2C /* LXAudioPlayerTests.m */; };
-		8E69B50F1C50DB87002DEFCF /* CoreGraphics.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 8E69B50E1C50DB87002DEFCF /* CoreGraphics.framework */; };
-		8E69B5111C50DB8C002DEFCF /* GLKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 8E69B5101C50DB8C002DEFCF /* GLKit.framework */; };
-		8E69B5131C50DB93002DEFCF /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 8E69B5121C50DB93002DEFCF /* Foundation.framework */; };
-		8E69B5151C50DBC7002DEFCF /* AVFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 8E69B5141C50DBC7002DEFCF /* AVFoundation.framework */; };
-		8E69B5171C50DBCC002DEFCF /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 8E69B5161C50DBCC002DEFCF /* UIKit.framework */; };
+		8EAD2A5F1C5232D4004FD392 /* LXInputStream.m in Sources */ = {isa = PBXBuildFile; fileRef = 8EAD2A5E1C5232D4004FD392 /* LXInputStream.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -61,6 +57,8 @@
 		8E69B5121C50DB93002DEFCF /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = System/Library/Frameworks/Foundation.framework; sourceTree = SDKROOT; };
 		8E69B5141C50DBC7002DEFCF /* AVFoundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AVFoundation.framework; path = System/Library/Frameworks/AVFoundation.framework; sourceTree = SDKROOT; };
 		8E69B5161C50DBCC002DEFCF /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = System/Library/Frameworks/UIKit.framework; sourceTree = SDKROOT; };
+		8EAD2A5D1C5232D4004FD392 /* LXInputStream.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = LXInputStream.h; sourceTree = "<group>"; };
+		8EAD2A5E1C5232D4004FD392 /* LXInputStream.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = LXInputStream.m; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -68,11 +66,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				8E69B5171C50DBCC002DEFCF /* UIKit.framework in Frameworks */,
-				8E69B5151C50DBC7002DEFCF /* AVFoundation.framework in Frameworks */,
-				8E69B5131C50DB93002DEFCF /* Foundation.framework in Frameworks */,
-				8E69B5111C50DB8C002DEFCF /* GLKit.framework in Frameworks */,
-				8E69B50F1C50DB87002DEFCF /* CoreGraphics.framework in Frameworks */,
 				813AECB41C4B7F8100211D40 /* AudioToolbox.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -121,6 +114,8 @@
 				8E08C5D31C474C8500A8EF2C /* LXHeader.h */,
 				8E08C5B51C438F6600A8EF2C /* LXAudioPlayer.h */,
 				8E08C5B61C438F6600A8EF2C /* LXAudioPlayer.m */,
+				8EAD2A5D1C5232D4004FD392 /* LXInputStream.h */,
+				8EAD2A5E1C5232D4004FD392 /* LXInputStream.m */,
 				8E08C5BD1C46274500A8EF2C /* LXRingBuffer.h */,
 				8E08C5BE1C46274500A8EF2C /* LXRingBuffer.m */,
 				8E08C5BA1C43A9D400A8EF2C /* test.mp3 */,
@@ -256,6 +251,7 @@
 				8E08C5B71C438F6600A8EF2C /* LXAudioPlayer.m in Sources */,
 				8E08C5BF1C46274500A8EF2C /* LXRingBuffer.m in Sources */,
 				8E08C5A31C438CE200A8EF2C /* AppDelegate.m in Sources */,
+				8EAD2A5F1C5232D4004FD392 /* LXInputStream.m in Sources */,
 				8E08C5A01C438CE200A8EF2C /* main.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

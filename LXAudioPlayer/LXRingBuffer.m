@@ -37,7 +37,7 @@
         audioBufferList.mNumberBuffers = 1;
         audioBufferList.mBuffers[0].mDataByteSize = bufferSize;
         //TODO:AudioBufferList.mNumberChannels should always 1???
-        audioBufferList.mBuffers[0].mNumberChannels = 2;
+        audioBufferList.mBuffers[0].mNumberChannels = 1;
         audioBufferList.mBuffers[0].mData = (void*)calloc(audioBuffer->mDataByteSize, 1);
         
         totalByteCount = bufferSize;
@@ -60,6 +60,9 @@
     OSSpinLockLock(&spinLock);
     BOOL result = totalByteCount-currentUsedByteCount >= spaceSize;
     OSSpinLockUnlock(&spinLock);
+    if (!result) {
+        NSLog(@"not hasSpaceAvailableForEnqueue");
+    }
     return result;
 }
 
@@ -70,18 +73,21 @@
     return result;
 }
 
-- (BOOL)euqueueData:(void *)data dataByteLength:(UInt32)dataByteSize {
+- (BOOL)enqueueData:(void *)data dataByteLength:(UInt32)dataByteSize {
+    LXLog(@"enqueueing...%d///%d",currentByteIndex,currentUsedByteCount);
     //if available bytes space is smaller than size of inserted data, return NO
     if (![self hasSpaceAvailableForEnqueue:dataByteSize]) {
+        NSLog(@"no enough space");
         return NO;
     }
     
     OSSpinLockLock(&spinLock);
     UInt32 start = currentByteIndex;
     UInt32 used = currentUsedByteCount;
+    //NSLog(@"current used byte:%d",used);
     OSSpinLockUnlock(&spinLock);
     
-    LXLog(@"ring buffer status before enqueue:startIndex:%d     framesUsed:%d     data size:%d",start,used,dataByteSize);
+    //LXLog(@"ring buffer status before enqueue:startIndex:%d     framesUsed:%d     data size:%d",start,used,dataByteSize);
     
     //does buffer has a continuous space to save audio?
     BOOL hasContinuousSpace = NO;
@@ -95,20 +101,22 @@
     //if buffer has a continuous space to save data, just save data
     //TODO:add pthread lock
     if (hasContinuousSpace) {
-        memcpy(audioBuffer->mData+end, data, dataByteSize);
+        //init memory
+        memmove(audioBuffer->mData+end, data, dataByteSize);
+        //memmove(audioBuffer->mData+end, data, dataByteSize);
     }
     else{
         //first, copy part of data to the end of buffer
-        memcpy(audioBuffer->mData+end, data, (totalByteCount-end));
+        memmove(audioBuffer->mData+end, data, (totalByteCount-end));
         //second, copy remaining of data to the start of buffer
         UInt32 remainingSize = dataByteSize-(totalByteCount-end);
-        memcpy(audioBuffer->mData, data+(totalByteCount-end), remainingSize);
+        memmove(audioBuffer->mData, data+(totalByteCount-end), remainingSize);
     }
     
     OSSpinLockLock(&spinLock);
     currentUsedByteCount += dataByteSize;
     OSSpinLockUnlock(&spinLock);
-    LXLog(@"ring buffer status after  enqueue:startIndex:%d     framesUsed:%d",currentByteIndex,currentUsedByteCount);
+    //LXLog(@"ring buffer status after  enqueue:startIndex:%d     framesUsed:%d",currentByteIndex,currentUsedByteCount);
     return YES;
 }
 
@@ -119,7 +127,7 @@
     OSSpinLockLock(&spinLock);
     UInt32 start = currentByteIndex;
     OSSpinLockUnlock(&spinLock);
-    LXLog(@"ring buffer status before dequeue: startIndex:%d     framesUsed:%d      data size:%d",currentByteIndex,currentUsedByteCount,dataByteSize);
+    //LXLog(@"ring buffer status before dequeue: startIndex:%d     framesUsed:%d      data size:%d",currentByteIndex,currentUsedByteCount,dataByteSize);
     
     //does the buffer has a continuous data?
     BOOL hasContinuousData = NO;
@@ -131,20 +139,20 @@
     
     //if has continuous data, just copy it
     if (hasContinuousData) {
-        memcpy(data, audioBuffer->mData+start, dataByteSize);
+        memmove(data, audioBuffer->mData+start, dataByteSize);
     }else{
         UInt32 firstPartDataSize = (totalByteCount-start);
         //first copy part of data from currentFrameIndex to end of buffer
-        memcpy(data, audioBuffer->mData+start, firstPartDataSize);
+        memmove(data, audioBuffer->mData+start, firstPartDataSize);
         //second copy remaining data from start of buffer
-        memcpy(data+firstPartDataSize, audioBuffer->mData, dataByteSize-firstPartDataSize);
+        memmove(data+firstPartDataSize, audioBuffer->mData, dataByteSize-firstPartDataSize);
     }
     
     OSSpinLockLock(&spinLock);
     currentByteIndex = (currentByteIndex+dataByteSize)%totalByteCount;
     currentUsedByteCount -= dataByteSize;
     OSSpinLockUnlock(&spinLock);
-    LXLog(@"ring buffer status after  dequeue: startIndex:%d     framesUsed:%d      data size:%d",currentByteIndex,currentUsedByteCount,dataByteSize);
+    //LXLog(@"ring buffer status after  dequeue: startIndex:%d     framesUsed:%d      data size:%d",currentByteIndex,currentUsedByteCount,dataByteSize);
     
     return NO;
 }

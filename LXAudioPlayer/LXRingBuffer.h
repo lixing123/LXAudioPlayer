@@ -20,7 +20,7 @@
 
 - (BOOL)hasDataAvailableForDequeue:(UInt32)dataSize;
 
-- (BOOL)euqueueData:(void *)data dataByteLength:(UInt32)dataByteSize;
+- (BOOL)enqueueData:(void *)data dataByteLength:(UInt32)dataByteSize;
 
 - (BOOL)dequeueData:(void *)data dataByteLength:(UInt32)dataByteSize;
 

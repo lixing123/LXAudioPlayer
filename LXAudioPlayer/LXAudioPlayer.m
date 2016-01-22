@@ -52,17 +52,23 @@ static void handleError(OSStatus result, const char *failReason, failOperation o
 @interface LXAudioPlayer ()<NSStreamDelegate>{
 }
 
+@property(nonatomic,readwrite)float duration;
+
 @property(nonatomic)AUGraph graph;
 @property(nonatomic)AudioUnit remoteIOUnit;
 @property(nonatomic)NSURL *url;
-@property(nonatomic)AudioFileStreamID stream;
+@property(nonatomic)AudioFileStreamID audioFileStream;
 @property(nonatomic)NSInputStream *inputStream;
+@property(nonatomic)NSNumber *inputStreamOffset;
 @property(nonatomic)AudioStreamBasicDescription canonicalFormat;
 @property(nonatomic)AudioStreamBasicDescription converterInputFormat;
 @property(nonatomic)AudioConverterRef audioConverter;
 @property(nonatomic)LXRingBuffer *ringBuffer;
+//@property(nonatomic)pthread_cond_t ringBufferFilledLock;
 
 - (void)setupAudioConverterWithSourceFormat:(AudioStreamBasicDescription *)sourceFormat;
+- (void)resumeInputStream;
+- (void)pauseInputStream;
 
 @end
 
@@ -83,11 +89,19 @@ static OSStatus RemoteIOUnitCallback(void *							inRefCon,
         ioData->mBuffers[0].mNumberChannels = 1;
         ioData->mNumberBuffers = 1;
     }else{
+        //LXLog(@"no enough data");
         ioData->mBuffers[0].mData = calloc(ioDataByteSize, 1);
         ioData->mBuffers[0].mDataByteSize = ioDataByteSize;
         ioData->mBuffers[0].mNumberChannels = 1;
         ioData->mNumberBuffers = 1;
     }
+    
+    //if ring buffer has no space, pause inputStream
+//    if (![player.ringBuffer needToBeFilled]) {
+//        [player pauseInputStream];
+//    }else {
+//        [player resumeInputStream];
+//    }
     
     return noErr;
 }
@@ -119,6 +133,8 @@ OSStatus MyAudioConverterComplexInputDataProc(AudioConverterRef               in
     *ioNumberDataPackets = convertInfo->numberOfPackets;
     convertInfo->done = YES;
     
+    //if ring buffer has space for data, reschedule input stream to run loop
+    
     return 0;
 }
 
@@ -141,6 +157,24 @@ void MyAudioFileStream_PropertyListenerProc(void *							inClientData,
                         });
             [player setupAudioConverterWithSourceFormat:&inputFormat];
             break;
+        }
+        case kAudioFileStreamProperty_AudioDataByteCount:{
+            //create a ring buffer that don't need to read circle
+            //TODO:fix bugs when ring buffer size is less than size of audio
+            //init ring buffer
+//            UInt64 fileSize;
+//            UInt32 propSize = sizeof(fileSize);
+//            handleError(AudioFileStreamGetProperty(inAudioFileStream,
+//                                                   kAudioFileStreamProperty_AudioDataByteCount,
+//                                                   &propSize,
+//                                                   &fileSize),
+//                        "kAudioFileStreamProperty_AudioDataByteCount failed",
+//                        ^{
+//                            
+//                        });
+//            player.duration = fileSize;
+//            player.ringBuffer = [[LXRingBuffer alloc] initWithDataPCMFormat:player.canonicalFormat
+//                                                                    seconds:player.duration];
         }
         default:
             break;
@@ -166,7 +200,7 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
     
     //define output data of audio converter
     while (1) {
-        UInt32 maxBufferSize = 1024;
+        UInt32 maxBufferSize = 1024 * 16;
         AudioBufferList bufferList;
         bufferList.mNumberBuffers = 1;
         AudioBuffer *buffer = &bufferList.mBuffers[0];
@@ -182,18 +216,28 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
         if (result==0) {
             //store bufferList
             if ([player.ringBuffer hasSpaceAvailableForEnqueue:buffer->mDataByteSize]) {
-                BOOL enqueueResult = [player.ringBuffer euqueueData:buffer->mData
+                BOOL enqueueResult = [player.ringBuffer enqueueData:buffer->mData
                                                      dataByteLength:buffer->mDataByteSize];
-                continue;
+                if (!enqueueResult) {
+                    LXLog(@"enqueue failed");
+                }
             }else{
+                NSLog(@"no enough space for data");
             }
+            continue;
         }else if (result==100){//need data from AudioFileStream
             if ([player.ringBuffer hasSpaceAvailableForEnqueue:buffer->mDataByteSize]) {
-                BOOL enqueueResult = [player.ringBuffer euqueueData:buffer->mData
+                BOOL enqueueResult = [player.ringBuffer enqueueData:buffer->mData
                                                      dataByteLength:buffer->mDataByteSize];
+                if (!enqueueResult) {
+                    LXLog(@"enqueue failed");
+                }
+            }else{
+                LXLog(@"no enough space for data");
             }
             return;
         }else{//error
+            LXLog(@"audio converter error");
             return;
         }
     }
@@ -258,12 +302,40 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
     [self.inputStream open];
 }
 
+- (void)resumeInputStream {
+    if (!self.inputStream) {
+        NSLog(@"%s",__func__);
+        NSInputStream *tempStream = [[NSInputStream alloc] initWithURL:self.url];
+        tempStream.delegate = self;
+        [tempStream scheduleInRunLoop:[NSRunLoop currentRunLoop]
+                              forMode:NSDefaultRunLoopMode];
+        [tempStream open];
+        if (self.inputStreamOffset) {
+            [tempStream setProperty:self.inputStreamOffset
+                             forKey:NSStreamFileCurrentOffsetKey];
+        }
+        self.inputStream = tempStream;
+    }
+}
+
+- (void)pauseInputStream {
+    if (self.inputStream) {
+        NSLog(@"%s",__func__);
+        self.inputStreamOffset = [self.inputStream propertyForKey:NSStreamFileCurrentOffsetKey];
+        self.inputStream.delegate = nil;
+        [self.inputStream close];
+        [self.inputStream removeFromRunLoop:[NSRunLoop currentRunLoop]
+                                    forMode:NSDefaultRunLoopMode];
+        self.inputStream = nil;
+    }
+}
+
 - (void)setupAudioFileStreamService{
     handleError(AudioFileStreamOpen((__bridge void*)self,
                                     MyAudioFileStream_PropertyListenerProc,
                                     MyAudioFileStream_PacketsProc,
                                     0,//TODO:define file type hint based on file extension
-                                    &_stream),
+                                    &_audioFileStream),
                 "failed to open audio file stream",
                 ^{
                     
@@ -353,8 +425,8 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
                 });
     self.canonicalFormat = streamFormat;
     
-    //init ring buffer
-    self.ringBuffer = [[LXRingBuffer alloc] initWithDataPCMFormat:self.canonicalFormat seconds:1.0];
+    self.ringBuffer = [[LXRingBuffer alloc] initWithDataPCMFormat:self.canonicalFormat
+                                                          seconds:5.0];
     
     //set render callback of remoteIO unit
     AURenderCallbackStruct callbackStruct;
@@ -382,56 +454,49 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
 #pragma mark - NSStreamDelegate
 
 - (void)stream:(NSStream *)aStream handleEvent:(NSStreamEvent)eventCode {
+    NSInputStream *aInputStream = (NSInputStream *)aStream;
+    NSLog(@"event code:%d",(int)eventCode);
     switch (eventCode) {
         case NSStreamEventNone:{
-            NSLog(@"stream event none");
+            LXLog(@"stream event none");
             break;
         }
         case NSStreamEventOpenCompleted:{
-            NSLog(@"stream event open complete");
+            LXLog(@"stream event open complete");
             break;
         }
         case NSStreamEventHasBytesAvailable:{
             //read from input file
             //TODO:compare this method with blocking thread
-            if ([self.ringBuffer needToBeFilled]) {
+            //if ([self.ringBuffer needToBeFilled]) {
                 if (self.inputStream.hasBytesAvailable) {
                     //TODO:figure out buffer size
-                    UInt32 bufferSize = 1024 * 4;
+                    UInt32 bufferSize = 1024;
                     UInt8 *inputBuffer = calloc(sizeof(UInt8)*bufferSize, 1);
                     NSInteger readLength;
                     
-                    readLength = [self.inputStream read:inputBuffer
-                                              maxLength:bufferSize];
+                    readLength = [aInputStream read:inputBuffer
+                                          maxLength:bufferSize];
                     
-                    AudioFileStreamParseBytes(self.stream,
+                    AudioFileStreamParseBytes(self.audioFileStream,
                                               (UInt32)readLength,
                                               inputBuffer,
                                               0);
                 }
-            }else {
+//            }else {
                 //TODO:fix this bug
-                UInt32 bufferSize = 1;
-                UInt8 *inputBuffer = calloc(sizeof(UInt8)*bufferSize, 1);
-                NSInteger readLength;
-                
-                readLength = [self.inputStream read:inputBuffer
-                                          maxLength:bufferSize];
-                
-                AudioFileStreamParseBytes(self.stream,
-                                          (UInt32)readLength,
-                                          inputBuffer,
-                                          0);
-            }
+                //if no enough data, remove input stream from run loop
+                //[self pauseInputStream];
+//            }
             
             break;
         }
         case NSStreamEventErrorOccurred:{
-            NSLog(@"stream event error");
+            LXLog(@"stream event error");
             break;
         }
         case NSStreamEventEndEncountered:{
-            NSLog(@"stream event end");
+            LXLog(@"stream event end");
             break;
         }
         default:
