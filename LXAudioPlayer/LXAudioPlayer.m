@@ -52,6 +52,7 @@ static void handleError(OSStatus result, const char *failReason, failOperation o
 
 @interface LXAudioPlayer ()<NSStreamDelegate>{
 @public
+    pthread_mutex_t playerMutex;
     pthread_mutex_t ringBufferMutex;
     pthread_cond_t ringBufferFilledCondition;
 }
@@ -225,6 +226,7 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
                     LXLog(@"enqueue failed");
                 }
                 free(buffer->mData);
+                buffer->mData = NULL;
             }else{
                 NSLog(@"no enough space for data");
             }
@@ -237,14 +239,17 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
                     LXLog(@"enqueue failed");
                 }
                 free(buffer->mData);
+                buffer->mData = NULL;
             }else{
                 LXLog(@"no enough space for data");
                 free(buffer->mData);
+                buffer->mData = NULL;
             }
             return;
         }else{//error
             LXLog(@"audio converter error");
             free(buffer->mData);
+            buffer->mData = NULL;
             return;
         }
     }
@@ -277,11 +282,22 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
 }
 
 - (void)play {
-    handleError(AUGraphStart(_graph),
-                "AUGraphStart failed",
+    //TODO:why AUGraphIsRunning still return false after starting graph?
+    Boolean isRunning;
+    handleError(AUGraphIsRunning(_graph,
+                                 &isRunning),
+                "AUGraphIsRunning failed",
                 ^{
                     
                 });
+    LXLog(@"AUGraph is running:%d",isRunning);
+    if (!isRunning) {
+        handleError(AUGraphStart(_graph),
+                    "AUGraphStart failed",
+                    ^{
+                        
+                    });
+    }
 }
 
 - (void)pause {
@@ -403,7 +419,10 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
 }
 
 - (void)destroyRingBuffer {
-    [self.ringBuffer destroy];
+    if (self.ringBuffer) {
+        [self.ringBuffer destroy];
+    }
+    self.ringBuffer = nil;
 }
 
 - (void)setupGraph {
@@ -494,26 +513,27 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
     handleError(AUGraphStop(_graph),
                 "AUGraphStop failed",
                 ^{
-                    
+                    LXLog(@"AUGraphStop failed");
                 });
     handleError(AUGraphUninitialize(_graph),
                 "AUGraphUninitialize failed",
                 ^{
-                    
+                    LXLog(@"AUGraphUninitialize failed");
                 });
     handleError(AUGraphClose(_graph),
                 "AUGraphClose failed",
                 ^{
-                    
+                    LXLog(@"AUGraphClose failed");
                 });
     handleError(DisposeAUGraph(_graph),
                 "DisposeAUGraph failed",
                 ^{
-                    
+                    LXLog(@"DisposeAUGraph failed");
                 });
 }
 
 - (void)setupLocks {
+    pthread_mutex_init(&playerMutex, NULL);
     pthread_mutex_init(&ringBufferMutex, NULL);
     pthread_cond_init(&ringBufferFilledCondition, NULL);
 }
@@ -570,6 +590,7 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
                                               inputBuffer,
                                               0);
                     free(inputBuffer);
+                    inputBuffer = NULL;
                 }
             }
             

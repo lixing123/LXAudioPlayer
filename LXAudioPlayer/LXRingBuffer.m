@@ -53,6 +53,7 @@
     currentUsedByteCount = 0;
     
     free(audioBuffer->mData);
+    audioBuffer->mData = NULL;
 }
 
 - (BOOL)needToBeFilled {
