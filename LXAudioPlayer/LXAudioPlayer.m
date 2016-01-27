@@ -67,8 +67,6 @@ static void handleError(OSStatus result, const char *failReason, failOperation o
 //@property(nonatomic)pthread_cond_t ringBufferFilledLock;
 
 - (void)setupAudioConverterWithSourceFormat:(AudioStreamBasicDescription *)sourceFormat;
-- (void)resumeInputStream;
-- (void)pauseInputStream;
 
 @end
 
@@ -95,13 +93,6 @@ static OSStatus RemoteIOUnitCallback(void *							inRefCon,
         ioData->mBuffers[0].mNumberChannels = 1;
         ioData->mNumberBuffers = 1;
     }
-    
-    //if ring buffer has no space, pause inputStream
-//    if (![player.ringBuffer needToBeFilled]) {
-//        [player pauseInputStream];
-//    }else {
-//        [player resumeInputStream];
-//    }
     
     return noErr;
 }
@@ -302,34 +293,6 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
     [self.inputStream open];
 }
 
-- (void)resumeInputStream {
-    if (!self.inputStream) {
-        NSLog(@"%s",__func__);
-        NSInputStream *tempStream = [[NSInputStream alloc] initWithURL:self.url];
-        tempStream.delegate = self;
-        [tempStream scheduleInRunLoop:[NSRunLoop currentRunLoop]
-                              forMode:NSDefaultRunLoopMode];
-        [tempStream open];
-        if (self.inputStreamOffset) {
-            [tempStream setProperty:self.inputStreamOffset
-                             forKey:NSStreamFileCurrentOffsetKey];
-        }
-        self.inputStream = tempStream;
-    }
-}
-
-- (void)pauseInputStream {
-    if (self.inputStream) {
-        NSLog(@"%s",__func__);
-        self.inputStreamOffset = [self.inputStream propertyForKey:NSStreamFileCurrentOffsetKey];
-        self.inputStream.delegate = nil;
-        [self.inputStream close];
-        [self.inputStream removeFromRunLoop:[NSRunLoop currentRunLoop]
-                                    forMode:NSDefaultRunLoopMode];
-        self.inputStream = nil;
-    }
-}
-
 - (void)setupAudioFileStreamService{
     handleError(AudioFileStreamOpen((__bridge void*)self,
                                     MyAudioFileStream_PropertyListenerProc,
@@ -467,8 +430,12 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
         }
         case NSStreamEventHasBytesAvailable:{
             //read from input file
-            //TODO:compare this method with blocking thread
-            //if ([self.ringBuffer needToBeFilled]) {
+            //if ring buffer doesn't need data, block here
+            //TODO:this may be inefficient, try to improve with Pthread
+            while (![self.ringBuffer needToBeFilled]) {
+                continue;
+            }
+            if ([self.ringBuffer needToBeFilled]) {
                 if (self.inputStream.hasBytesAvailable) {
                     //TODO:figure out buffer size
                     UInt32 bufferSize = 1024;
@@ -483,11 +450,7 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
                                               inputBuffer,
                                               0);
                 }
-//            }else {
-                //TODO:fix this bug
-                //if no enough data, remove input stream from run loop
-                //[self pauseInputStream];
-//            }
+            }
             
             break;
         }
