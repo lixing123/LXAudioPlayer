@@ -13,8 +13,12 @@
 
 - (id)initWithDataPCMFormat:(AudioStreamBasicDescription)pcmFormat seconds:(float)seconds;
 
+- (void)destroy;
+
 //specify whether the ring buffer needs data
 - (BOOL)needToBeFilled;
+
+- (BOOL)filled;
 
 - (BOOL)hasSpaceAvailableForEnqueue:(UInt32)spaceSize;
 

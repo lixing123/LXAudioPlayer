@@ -34,6 +34,7 @@
 
 - (void)play;
 - (void)pause;
+- (void)resume;
 - (void)stop;
 - (void)seekToTime:(float)seekTime;
 

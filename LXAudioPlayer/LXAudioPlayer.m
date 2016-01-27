@@ -10,6 +10,7 @@
 #import "LXHeader.h"
 #import <AudioToolbox/AudioToolbox.h>
 #import "LXRingBuffer.h"
+#import <pthread/pthread.h>
 
 typedef void (^failOperation) ();
 
@@ -50,6 +51,9 @@ static void handleError(OSStatus result, const char *failReason, failOperation o
 }
 
 @interface LXAudioPlayer ()<NSStreamDelegate>{
+@public
+    pthread_mutex_t ringBufferMutex;
+    pthread_cond_t ringBufferFilledCondition;
 }
 
 @property(nonatomic,readwrite)float duration;
@@ -64,7 +68,8 @@ static void handleError(OSStatus result, const char *failReason, failOperation o
 @property(nonatomic)AudioStreamBasicDescription converterInputFormat;
 @property(nonatomic)AudioConverterRef audioConverter;
 @property(nonatomic)LXRingBuffer *ringBuffer;
-//@property(nonatomic)pthread_cond_t ringBufferFilledLock;
+
+@property(nonatomic)BOOL waiting;
 
 - (void)setupAudioConverterWithSourceFormat:(AudioStreamBasicDescription *)sourceFormat;
 
@@ -87,11 +92,18 @@ static OSStatus RemoteIOUnitCallback(void *							inRefCon,
         ioData->mBuffers[0].mNumberChannels = 1;
         ioData->mNumberBuffers = 1;
     }else{
-        //LXLog(@"no enough data");
+        //TODO:when no enough data, tell the delegate or do other things
         ioData->mBuffers[0].mData = calloc(ioDataByteSize, 1);
         ioData->mBuffers[0].mDataByteSize = ioDataByteSize;
         ioData->mBuffers[0].mNumberChannels = 1;
         ioData->mNumberBuffers = 1;
+    }
+    
+    if ([player.ringBuffer needToBeFilled]&&player.waiting) {
+        //tell the NSInputStream delegate to continue read data
+        pthread_mutex_lock(&player->ringBufferMutex);
+        pthread_cond_signal(&player->ringBufferFilledCondition);
+        pthread_mutex_unlock(&player->ringBufferMutex);
     }
     
     return noErr;
@@ -212,6 +224,7 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
                 if (!enqueueResult) {
                     LXLog(@"enqueue failed");
                 }
+                free(buffer->mData);
             }else{
                 NSLog(@"no enough space for data");
             }
@@ -223,12 +236,15 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
                 if (!enqueueResult) {
                     LXLog(@"enqueue failed");
                 }
+                free(buffer->mData);
             }else{
                 LXLog(@"no enough space for data");
+                free(buffer->mData);
             }
             return;
         }else{//error
             LXLog(@"audio converter error");
+            free(buffer->mData);
             return;
         }
     }
@@ -247,7 +263,14 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
         [self setupAudioFileStreamService];
         
         //set up graph
+        [self setupCanonicalFormat];
+        
+        //set up ring buffer based on canonical stream format
+        [self setupRingBuffer];
+        
         [self setupGraph];
+        
+        [self setupLocks];
     }
     
     return self;
@@ -263,14 +286,35 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
 
 - (void)pause {
     handleError(AUGraphStop(_graph),
-                "AUGraphStop failed",
+                "pause AUGraph failed",
+                ^{
+                    
+                });
+}
+
+- (void)resume {
+    handleError(AUGraphStart(_graph),
+                "resume AUGraph failed",
                 ^{
                     
                 });
 }
 
 - (void)stop {
+    //clear AUGraph
+    handleError(AUGraphStop(_graph),
+                "stop AUGraph failed", ^{
+                    
+                });
+    [self destroyGraph];
+    //clear pthread locks
+    [self destroyLocks];
     
+    //clear audio player
+    [self destroyRingBuffer];
+    [self destroyAudioConverter];
+    [self destroyInputStream];
+    [self destroyAudioFileStreamService];
 }
 
 - (void)seekToTime:(float)seekTime {
@@ -285,7 +329,7 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
 
 #pragma mark -
 
-- (void)setupInputStream{
+- (void)setupInputStream {
     self.inputStream = [[NSInputStream alloc] initWithURL:self.url];
     self.inputStream.delegate = self;
     [self.inputStream scheduleInRunLoop:[NSRunLoop currentRunLoop]
@@ -293,7 +337,14 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
     [self.inputStream open];
 }
 
-- (void)setupAudioFileStreamService{
+- (void)destroyInputStream {
+    [self.inputStream close];
+    [self.inputStream removeFromRunLoop:[NSRunLoop currentRunLoop]
+                                forMode:NSDefaultRunLoopMode];
+    self.inputStream.delegate = nil;
+}
+
+- (void)setupAudioFileStreamService {
     handleError(AudioFileStreamOpen((__bridge void*)self,
                                     MyAudioFileStream_PropertyListenerProc,
                                     MyAudioFileStream_PacketsProc,
@@ -305,7 +356,15 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
                 });
 }
 
-- (void)setupAudioConverterWithSourceFormat:(AudioStreamBasicDescription *)sourceFormat{
+- (void)destroyAudioFileStreamService {
+    handleError(AudioFileStreamClose(_audioFileStream),
+                "AudioFileStreamClose failed",
+                ^{
+                    
+                });
+}
+
+- (void)setupAudioConverterWithSourceFormat:(AudioStreamBasicDescription *)sourceFormat {
     AudioStreamBasicDescription streamFormat = self.canonicalFormat;
     AudioConverterRef audioConverter;
     AudioConverterNew(sourceFormat,
@@ -315,7 +374,39 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
     self.converterInputFormat = *sourceFormat;
 }
 
-- (void)setupGraph{
+- (void)destroyAudioConverter {
+    handleError(AudioConverterDispose(self.audioConverter),
+                "AudioConverterDispose failed",
+                ^{
+                    
+                });
+}
+
+- (void)setupCanonicalFormat {
+    //set input stream format of remoteIO unit
+    //TODO:is it needed to destroy ASBD when dealloc?
+    AudioStreamBasicDescription streamFormat = {0};
+    streamFormat.mFormatID = kAudioFormatLinearPCM;
+    streamFormat.mFormatFlags = kAudioFormatFlagIsSignedInteger | kAudioFormatFlagIsPacked;
+    streamFormat.mSampleRate = 44100.0;
+    streamFormat.mFramesPerPacket = 1;
+    streamFormat.mBytesPerPacket = 4;
+    streamFormat.mBytesPerFrame = 4;
+    streamFormat.mChannelsPerFrame = 2;
+    streamFormat.mBitsPerChannel = 16;
+    self.canonicalFormat = streamFormat;
+}
+
+- (void)setupRingBuffer {
+    self.ringBuffer = [[LXRingBuffer alloc] initWithDataPCMFormat:self.canonicalFormat
+                                                          seconds:5.0];
+}
+
+- (void)destroyRingBuffer {
+    [self.ringBuffer destroy];
+}
+
+- (void)setupGraph {
     handleError(NewAUGraph(&_graph),
                 "NewAUGraph failed",
                 ^{
@@ -350,6 +441,17 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
                     
                 });
     
+    handleError(AudioUnitSetProperty(_remoteIOUnit,
+                                     kAudioUnitProperty_StreamFormat,
+                                     kAudioUnitScope_Input,
+                                     0,
+                                     &_canonicalFormat,
+                                     sizeof(_canonicalFormat)),
+                "unable to set stream format of remoteIO unit",
+                ^{
+                    
+                });
+    
     //open output hardware(speaker) of remoteIO unit
     UInt32 enableIO = 1;
     UInt32 size = sizeof(enableIO);
@@ -364,32 +466,6 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
                 ^{
                     
                 });
-    
-    //set input stream format of remoteIO unit
-    //TODO: stream format should be set at the beginning of class init
-    AudioStreamBasicDescription streamFormat = {0};
-    streamFormat.mFormatID = kAudioFormatLinearPCM;
-    streamFormat.mFormatFlags = kAudioFormatFlagIsSignedInteger | kAudioFormatFlagIsPacked;
-    streamFormat.mSampleRate = 44100.0;
-    streamFormat.mFramesPerPacket = 1;
-    streamFormat.mBytesPerPacket = 4;
-    streamFormat.mBytesPerFrame = 4;
-    streamFormat.mChannelsPerFrame = 2;
-    streamFormat.mBitsPerChannel = 16;
-    handleError(AudioUnitSetProperty(_remoteIOUnit,
-                                     kAudioUnitProperty_StreamFormat,
-                                     kAudioUnitScope_Input,
-                                     0,
-                                     &streamFormat,
-                                     sizeof(streamFormat)),
-                "unable to set stream format of remoteIO unit",
-                ^{
-                    
-                });
-    self.canonicalFormat = streamFormat;
-    
-    self.ringBuffer = [[LXRingBuffer alloc] initWithDataPCMFormat:self.canonicalFormat
-                                                          seconds:5.0];
     
     //set render callback of remoteIO unit
     AURenderCallbackStruct callbackStruct;
@@ -414,11 +490,43 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
                 });
 }
 
+- (void)destroyGraph {
+    handleError(AUGraphStop(_graph),
+                "AUGraphStop failed",
+                ^{
+                    
+                });
+    handleError(AUGraphUninitialize(_graph),
+                "AUGraphUninitialize failed",
+                ^{
+                    
+                });
+    handleError(AUGraphClose(_graph),
+                "AUGraphClose failed",
+                ^{
+                    
+                });
+    handleError(DisposeAUGraph(_graph),
+                "DisposeAUGraph failed",
+                ^{
+                    
+                });
+}
+
+- (void)setupLocks {
+    pthread_mutex_init(&ringBufferMutex, NULL);
+    pthread_cond_init(&ringBufferFilledCondition, NULL);
+}
+
+- (void)destroyLocks {
+    pthread_mutex_destroy(&ringBufferMutex);
+    pthread_cond_destroy(&ringBufferFilledCondition);
+}
+
 #pragma mark - NSStreamDelegate
 
 - (void)stream:(NSStream *)aStream handleEvent:(NSStreamEvent)eventCode {
     NSInputStream *aInputStream = (NSInputStream *)aStream;
-    NSLog(@"event code:%d",(int)eventCode);
     switch (eventCode) {
         case NSStreamEventNone:{
             LXLog(@"stream event none");
@@ -431,11 +539,23 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
         case NSStreamEventHasBytesAvailable:{
             //read from input file
             //if ring buffer doesn't need data, block here
-            //TODO:this may be inefficient, try to improve with Pthread
-            while (![self.ringBuffer needToBeFilled]) {
-                continue;
+            if ([self.ringBuffer filled]) {
+                pthread_mutex_lock(&ringBufferMutex);
+                while (true) {
+                    if ([self.ringBuffer needToBeFilled]) {
+                        break;
+                    }else {
+                    }
+                    
+                    
+                    self.waiting = YES;
+                    pthread_cond_wait(&ringBufferFilledCondition, &ringBufferMutex);
+                    self.waiting = NO;
+                }
+                pthread_mutex_unlock(&ringBufferMutex);
             }
-            if ([self.ringBuffer needToBeFilled]) {
+            
+            if (![self.ringBuffer filled]) {
                 if (self.inputStream.hasBytesAvailable) {
                     //TODO:figure out buffer size
                     UInt32 bufferSize = 1024;
@@ -449,6 +569,7 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
                                               (UInt32)readLength,
                                               inputBuffer,
                                               0);
+                    free(inputBuffer);
                 }
             }
             
@@ -460,6 +581,7 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
         }
         case NSStreamEventEndEncountered:{
             LXLog(@"stream event end");
+            //[self stop];
             break;
         }
         default:

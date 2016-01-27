@@ -43,10 +43,16 @@
         totalByteCount = bufferSize;
         currentByteIndex = 0;
         currentUsedByteCount = 0;
-        
-        //LXLog(@"total byte count of ring buffer:%d",bufferSize);
     }
     return self;
+}
+
+- (void)destroy {
+    totalByteCount = 0;
+    currentByteIndex = 0;
+    currentUsedByteCount = 0;
+    
+    free(audioBuffer->mData);
 }
 
 - (BOOL)needToBeFilled {
@@ -56,13 +62,17 @@
     return result;
 }
 
+- (BOOL)filled {
+    OSSpinLockLock(&spinLock);
+    BOOL result = ((float)currentUsedByteCount/(float)totalByteCount>0.9);
+    OSSpinLockUnlock(&spinLock);
+    return result;
+}
+
 - (BOOL)hasSpaceAvailableForEnqueue:(UInt32)spaceSize {
     OSSpinLockLock(&spinLock);
     BOOL result = totalByteCount-currentUsedByteCount >= spaceSize;
     OSSpinLockUnlock(&spinLock);
-    if (!result) {
-        NSLog(@"not hasSpaceAvailableForEnqueue");
-    }
     return result;
 }
 
@@ -74,20 +84,15 @@
 }
 
 - (BOOL)enqueueData:(void *)data dataByteLength:(UInt32)dataByteSize {
-    LXLog(@"enqueueing...%d///%d",currentByteIndex,currentUsedByteCount);
     //if available bytes space is smaller than size of inserted data, return NO
     if (![self hasSpaceAvailableForEnqueue:dataByteSize]) {
-        NSLog(@"no enough space");
         return NO;
     }
     
     OSSpinLockLock(&spinLock);
     UInt32 start = currentByteIndex;
     UInt32 used = currentUsedByteCount;
-    //NSLog(@"current used byte:%d",used);
     OSSpinLockUnlock(&spinLock);
-    
-    //LXLog(@"ring buffer status before enqueue:startIndex:%d     framesUsed:%d     data size:%d",start,used,dataByteSize);
     
     //does buffer has a continuous space to save audio?
     BOOL hasContinuousSpace = NO;
@@ -102,21 +107,19 @@
     //TODO:add pthread lock
     if (hasContinuousSpace) {
         //init memory
-        memmove(audioBuffer->mData+end, data, dataByteSize);
-        //memmove(audioBuffer->mData+end, data, dataByteSize);
+        memcpy(audioBuffer->mData+end, data, dataByteSize);
     }
     else{
         //first, copy part of data to the end of buffer
-        memmove(audioBuffer->mData+end, data, (totalByteCount-end));
+        memcpy(audioBuffer->mData+end, data, (totalByteCount-end));
         //second, copy remaining of data to the start of buffer
         UInt32 remainingSize = dataByteSize-(totalByteCount-end);
-        memmove(audioBuffer->mData, data+(totalByteCount-end), remainingSize);
+        memcpy(audioBuffer->mData, data+(totalByteCount-end), remainingSize);
     }
     
     OSSpinLockLock(&spinLock);
     currentUsedByteCount += dataByteSize;
     OSSpinLockUnlock(&spinLock);
-    //LXLog(@"ring buffer status after  enqueue:startIndex:%d     framesUsed:%d",currentByteIndex,currentUsedByteCount);
     return YES;
 }
 
@@ -127,7 +130,6 @@
     OSSpinLockLock(&spinLock);
     UInt32 start = currentByteIndex;
     OSSpinLockUnlock(&spinLock);
-    //LXLog(@"ring buffer status before dequeue: startIndex:%d     framesUsed:%d      data size:%d",currentByteIndex,currentUsedByteCount,dataByteSize);
     
     //does the buffer has a continuous data?
     BOOL hasContinuousData = NO;
@@ -139,13 +141,13 @@
     
     //if has continuous data, just copy it
     if (hasContinuousData) {
-        memmove(data, audioBuffer->mData+start, dataByteSize);
+        memcpy(data, audioBuffer->mData+start, dataByteSize);
     }else{
         UInt32 firstPartDataSize = (totalByteCount-start);
         //first copy part of data from currentFrameIndex to end of buffer
-        memmove(data, audioBuffer->mData+start, firstPartDataSize);
+        memcpy(data, audioBuffer->mData+start, firstPartDataSize);
         //second copy remaining data from start of buffer
-        memmove(data+firstPartDataSize, audioBuffer->mData, dataByteSize-firstPartDataSize);
+        memcpy(data+firstPartDataSize, audioBuffer->mData, dataByteSize-firstPartDataSize);
     }
     
     OSSpinLockLock(&spinLock);
