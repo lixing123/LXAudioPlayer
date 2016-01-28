@@ -52,7 +52,7 @@
 }
 
 - (void)play {
-    NSString *fileString = [[NSBundle mainBundle] pathForResource:@"test" ofType:@"mp3"];
+    NSString *fileString = [[NSBundle mainBundle] pathForResource:@"test1" ofType:@"mp3"];
     NSURL *url = [[NSURL alloc] initFileURLWithPath:fileString];
     //the lxPlayer must be of a global variable, or it'll be released before playing.
     self.lxPlayer = [[LXAudioPlayer alloc] initWithURL:url];

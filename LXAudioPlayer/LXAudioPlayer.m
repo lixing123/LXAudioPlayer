@@ -283,6 +283,7 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
 
 - (void)play {
     //TODO:why AUGraphIsRunning still return false after starting graph?
+    pthread_mutex_lock(&playerMutex);
     Boolean isRunning;
     handleError(AUGraphIsRunning(_graph,
                                  &isRunning),
@@ -290,14 +291,30 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
                 ^{
                     
                 });
+    pthread_mutex_unlock(&playerMutex);
     LXLog(@"AUGraph is running:%d",isRunning);
     if (!isRunning) {
+        pthread_mutex_lock(&playerMutex);
         handleError(AUGraphStart(_graph),
                     "AUGraphStart failed",
                     ^{
                         
                     });
+        pthread_mutex_unlock(&playerMutex);
     }
+    
+//    [NSTimer scheduledTimerWithTimeInterval:2.0
+//                                 target:self
+//                                   selector:@selector(testGraph)
+//                                   userInfo:nil
+//                                    repeats:YES];
+}
+
+- (void)testGraph {
+    Boolean isRunning;
+    AUGraphIsRunning(_graph,
+                     &isRunning),
+    LXLog(@"AUGraph is running:%d",isRunning);
 }
 
 - (void)pause {

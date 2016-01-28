@@ -15,9 +15,9 @@
 		8E08C5AB1C438CE200A8EF2C /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 8E08C5AA1C438CE200A8EF2C /* Assets.xcassets */; };
 		8E08C5AE1C438CE200A8EF2C /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 8E08C5AC1C438CE200A8EF2C /* LaunchScreen.storyboard */; };
 		8E08C5B71C438F6600A8EF2C /* LXAudioPlayer.m in Sources */ = {isa = PBXBuildFile; fileRef = 8E08C5B61C438F6600A8EF2C /* LXAudioPlayer.m */; };
-		8E08C5BB1C43A9D400A8EF2C /* test.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = 8E08C5BA1C43A9D400A8EF2C /* test.mp3 */; };
 		8E08C5BF1C46274500A8EF2C /* LXRingBuffer.m in Sources */ = {isa = PBXBuildFile; fileRef = 8E08C5BE1C46274500A8EF2C /* LXRingBuffer.m */; };
 		8E08C5CC1C473D9000A8EF2C /* LXAudioPlayerTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 8E08C5CB1C473D9000A8EF2C /* LXAudioPlayerTests.m */; };
+		8E5F46141C59F00D0030B5FE /* test1.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = 8E5F46131C59F00D0030B5FE /* test1.mp3 */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -44,13 +44,13 @@
 		8E08C5AF1C438CE200A8EF2C /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		8E08C5B51C438F6600A8EF2C /* LXAudioPlayer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = LXAudioPlayer.h; sourceTree = "<group>"; };
 		8E08C5B61C438F6600A8EF2C /* LXAudioPlayer.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = LXAudioPlayer.m; sourceTree = "<group>"; };
-		8E08C5BA1C43A9D400A8EF2C /* test.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = test.mp3; sourceTree = "<group>"; };
 		8E08C5BD1C46274500A8EF2C /* LXRingBuffer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = LXRingBuffer.h; sourceTree = "<group>"; };
 		8E08C5BE1C46274500A8EF2C /* LXRingBuffer.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = LXRingBuffer.m; sourceTree = "<group>"; };
 		8E08C5C91C473D9000A8EF2C /* LXAudioPlayerTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = LXAudioPlayerTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		8E08C5CB1C473D9000A8EF2C /* LXAudioPlayerTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = LXAudioPlayerTests.m; sourceTree = "<group>"; };
 		8E08C5CD1C473D9000A8EF2C /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		8E08C5D31C474C8500A8EF2C /* LXHeader.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = LXHeader.h; sourceTree = "<group>"; };
+		8E5F46131C59F00D0030B5FE /* test1.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = test1.mp3; sourceTree = "<group>"; };
 		8E69B50E1C50DB87002DEFCF /* CoreGraphics.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreGraphics.framework; path = System/Library/Frameworks/CoreGraphics.framework; sourceTree = SDKROOT; };
 		8E69B5101C50DB8C002DEFCF /* GLKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = GLKit.framework; path = System/Library/Frameworks/GLKit.framework; sourceTree = SDKROOT; };
 		8E69B5121C50DB93002DEFCF /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = System/Library/Frameworks/Foundation.framework; sourceTree = SDKROOT; };
@@ -113,7 +113,7 @@
 				8E08C5B61C438F6600A8EF2C /* LXAudioPlayer.m */,
 				8E08C5BD1C46274500A8EF2C /* LXRingBuffer.h */,
 				8E08C5BE1C46274500A8EF2C /* LXRingBuffer.m */,
-				8E08C5BA1C43A9D400A8EF2C /* test.mp3 */,
+				8E5F46131C59F00D0030B5FE /* test1.mp3 */,
 				8E08C5A71C438CE200A8EF2C /* Main.storyboard */,
 				8E08C5AA1C438CE200A8EF2C /* Assets.xcassets */,
 				8E08C5AC1C438CE200A8EF2C /* LaunchScreen.storyboard */,
@@ -223,7 +223,7 @@
 			files = (
 				8E08C5AE1C438CE200A8EF2C /* LaunchScreen.storyboard in Resources */,
 				8E08C5AB1C438CE200A8EF2C /* Assets.xcassets in Resources */,
-				8E08C5BB1C43A9D400A8EF2C /* test.mp3 in Resources */,
+				8E5F46141C59F00D0030B5FE /* test1.mp3 in Resources */,
 				8E08C5A91C438CE200A8EF2C /* Main.storyboard in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
