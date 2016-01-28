@@ -69,6 +69,8 @@ static void handleError(OSStatus result, const char *failReason, failOperation o
 @property(nonatomic)AudioStreamBasicDescription converterInputFormat;
 @property(nonatomic)AudioConverterRef audioConverter;
 @property(nonatomic)LXRingBuffer *ringBuffer;
+@property(nonatomic)NSThread *playbackThread;
+@property(nonatomic)NSRunLoop *playbackRunLoop;
 
 @property(nonatomic)BOOL waiting;
 
@@ -263,6 +265,10 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
     if (self=[super init]) {
         self.url = url;
         
+        [self setupLocks];
+        
+        [self setupPlaybackThread];
+        
         [self setupInputStream];
         
         [self setupAudioFileStreamService];
@@ -274,8 +280,6 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
         [self setupRingBuffer];
         
         [self setupGraph];
-        
-        [self setupLocks];
     }
     
     return self;
@@ -302,19 +306,6 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
                     });
         pthread_mutex_unlock(&playerMutex);
     }
-    
-//    [NSTimer scheduledTimerWithTimeInterval:2.0
-//                                 target:self
-//                                   selector:@selector(testGraph)
-//                                   userInfo:nil
-//                                    repeats:YES];
-}
-
-- (void)testGraph {
-    Boolean isRunning;
-    AUGraphIsRunning(_graph,
-                     &isRunning),
-    LXLog(@"AUGraph is running:%d",isRunning);
 }
 
 - (void)pause {
@@ -365,7 +356,8 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
 - (void)setupInputStream {
     self.inputStream = [[NSInputStream alloc] initWithURL:self.url];
     self.inputStream.delegate = self;
-    [self.inputStream scheduleInRunLoop:[NSRunLoop currentRunLoop]
+    //TODO:Can playback runloop still be nil at this time?
+    [self.inputStream scheduleInRunLoop:self.playbackRunLoop
                                 forMode:NSDefaultRunLoopMode];
     [self.inputStream open];
 }
@@ -560,6 +552,21 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
     pthread_cond_destroy(&ringBufferFilledCondition);
 }
 
+- (void)setupPlaybackThread {
+    self.playbackThread = [[NSThread alloc] initWithTarget:self
+                                                  selector:@selector(playback)
+                                                    object:nil];
+    [self.playbackThread start];
+}
+
+- (void)playback {
+    self.playbackRunLoop = [NSRunLoop currentRunLoop];
+    [self.playbackRunLoop addPort:[NSPort port] forMode:NSDefaultRunLoopMode];
+    //TODO:stop run loop at a proper time
+    LXLog(@"playback thread running");
+    [self.playbackRunLoop run];
+}
+
 #pragma mark - NSStreamDelegate
 
 - (void)stream:(NSStream *)aStream handleEvent:(NSStreamEvent)eventCode {
@@ -577,19 +584,17 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
             //read from input file
             //if ring buffer doesn't need data, block here
             if ([self.ringBuffer filled]) {
-                pthread_mutex_lock(&ringBufferMutex);
-                while (true) {
-                    if ([self.ringBuffer needToBeFilled]) {
-                        break;
-                    }else {
+                    pthread_mutex_lock(&ringBufferMutex);
+                    while (true) {
+                        if ([self.ringBuffer needToBeFilled]) {
+                            break;
+                        }
+                        
+                        self.waiting = YES;
+                        pthread_cond_wait(&ringBufferFilledCondition, &ringBufferMutex);
+                        self.waiting = NO;
                     }
-                    
-                    
-                    self.waiting = YES;
-                    pthread_cond_wait(&ringBufferFilledCondition, &ringBufferMutex);
-                    self.waiting = NO;
-                }
-                pthread_mutex_unlock(&ringBufferMutex);
+                    pthread_mutex_unlock(&ringBufferMutex);
             }
             
             if (![self.ringBuffer filled]) {
