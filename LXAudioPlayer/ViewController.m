@@ -23,6 +23,11 @@
     // Do any additional setup after loading the view, typically from a nib.
     [self setupSession];
     
+    NSString *fileString = [[NSBundle mainBundle] pathForResource:@"test1" ofType:@"mp3"];
+    NSURL *url = [[NSURL alloc] initFileURLWithPath:fileString];
+    //the lxPlayer must be of a global variable, or it'll be released before playing.
+    self.lxPlayer = [[LXAudioPlayer alloc] initWithURL:url];
+    
     UIButton *playButton = [UIButton buttonWithType:UIButtonTypeRoundedRect];
     [playButton setFrame:CGRectMake(100, 10, 100, 25)];
     [playButton setTitle:@"Play"
@@ -52,10 +57,6 @@
 }
 
 - (void)play {
-    NSString *fileString = [[NSBundle mainBundle] pathForResource:@"test1" ofType:@"mp3"];
-    NSURL *url = [[NSURL alloc] initFileURLWithPath:fileString];
-    //the lxPlayer must be of a global variable, or it'll be released before playing.
-    self.lxPlayer = [[LXAudioPlayer alloc] initWithURL:url];
     [self.lxPlayer play];
 }
 
@@ -63,9 +64,11 @@
     if ([button.titleLabel.text isEqualToString:@"Pause"]) {
         //[self.lxPlayer pause];
         [button setTitle:@"Resume" forState:UIControlStateNormal];
+        [self.lxPlayer pause];
     }else {
         //[self.lxPlayer resume];
         [button setTitle:@"Pause" forState:UIControlStateNormal];
+        [self.lxPlayer pause];
     }
     
 }

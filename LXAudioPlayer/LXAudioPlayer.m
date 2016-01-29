@@ -71,6 +71,7 @@ static void handleError(OSStatus result, const char *failReason, failOperation o
 @property(nonatomic)LXRingBuffer *ringBuffer;
 @property(nonatomic)NSThread *playbackThread;
 @property(nonatomic)NSRunLoop *playbackRunLoop;
+@property(nonatomic)NSConditionLock *playbackThreadRunningLock;
 
 @property(nonatomic)BOOL waiting;
 
@@ -286,17 +287,8 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
 }
 
 - (void)play {
-    //TODO:why AUGraphIsRunning still return false after starting graph?
-    pthread_mutex_lock(&playerMutex);
-    Boolean isRunning;
-    handleError(AUGraphIsRunning(_graph,
-                                 &isRunning),
-                "AUGraphIsRunning failed",
-                ^{
-                    
-                });
-    pthread_mutex_unlock(&playerMutex);
-    LXLog(@"AUGraph is running:%d",isRunning);
+    //pthread_mutex_lock(&playerMutex);
+    BOOL isRunning = [self graphRunningState];
     if (!isRunning) {
         pthread_mutex_lock(&playerMutex);
         handleError(AUGraphStart(_graph),
@@ -308,7 +300,19 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
     }
 }
 
+- (BOOL)graphRunningState {
+    Boolean isRunning;
+    OSStatus status = AUGraphIsRunning(_graph,
+                                       &isRunning);
+    if (status) {
+        return NO;
+    }
+    return isRunning;
+}
+
 - (void)pause {
+    BOOL isRunning = [self graphRunningState];
+    LXLog(@"AUGraph is running:%d",isRunning);
     handleError(AUGraphStop(_graph),
                 "pause AUGraph failed",
                 ^{
@@ -317,6 +321,8 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
 }
 
 - (void)resume {
+    BOOL isRunning = [self graphRunningState];
+    LXLog(@"AUGraph is running:%d",isRunning);
     handleError(AUGraphStart(_graph),
                 "resume AUGraph failed",
                 ^{
@@ -325,6 +331,8 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
 }
 
 - (void)stop {
+    BOOL isRunning = [self graphRunningState];
+    LXLog(@"AUGraph is running:%d",isRunning);
     //clear AUGraph
     handleError(AUGraphStop(_graph),
                 "stop AUGraph failed", ^{
@@ -356,7 +364,9 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
 - (void)setupInputStream {
     self.inputStream = [[NSInputStream alloc] initWithURL:self.url];
     self.inputStream.delegate = self;
-    //TODO:Can playback runloop still be nil at this time?
+    //make sure the playback thread is already running
+    [self.playbackThreadRunningLock lockWhenCondition:1];
+    [self.playbackThreadRunningLock unlockWithCondition:0];
     [self.inputStream scheduleInRunLoop:self.playbackRunLoop
                                 forMode:NSDefaultRunLoopMode];
     [self.inputStream open];
@@ -545,10 +555,12 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
     pthread_mutex_init(&playerMutex, NULL);
     pthread_mutex_init(&ringBufferMutex, NULL);
     pthread_cond_init(&ringBufferFilledCondition, NULL);
+    self.playbackThreadRunningLock = [[NSConditionLock alloc] initWithCondition:0];
 }
 
 - (void)destroyLocks {
     pthread_mutex_destroy(&ringBufferMutex);
+    pthread_mutex_destroy(&playerMutex);
     pthread_cond_destroy(&ringBufferFilledCondition);
 }
 
@@ -561,9 +573,12 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
 
 - (void)playback {
     self.playbackRunLoop = [NSRunLoop currentRunLoop];
+    
+    [self.playbackThreadRunningLock lockWhenCondition:0];
+    [self.playbackThreadRunningLock unlockWithCondition:1];
+    
     [self.playbackRunLoop addPort:[NSPort port] forMode:NSDefaultRunLoopMode];
     //TODO:stop run loop at a proper time
-    LXLog(@"playback thread running");
     [self.playbackRunLoop run];
 }
 
