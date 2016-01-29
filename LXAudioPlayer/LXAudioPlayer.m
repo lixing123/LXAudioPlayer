@@ -287,7 +287,6 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
 }
 
 - (void)play {
-    //pthread_mutex_lock(&playerMutex);
     BOOL isRunning = [self graphRunningState];
     if (!isRunning) {
         pthread_mutex_lock(&playerMutex);
@@ -300,10 +299,17 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
     }
 }
 
+- (void)reset {
+    [self.ringBuffer reset];
+    
+}
+
 - (BOOL)graphRunningState {
     Boolean isRunning;
+    pthread_mutex_lock(&playerMutex);
     OSStatus status = AUGraphIsRunning(_graph,
                                        &isRunning);
+    pthread_mutex_unlock(&playerMutex);
     if (status) {
         return NO;
     }
@@ -320,33 +326,12 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
                 });
 }
 
-- (void)resume {
-    BOOL isRunning = [self graphRunningState];
-    LXLog(@"AUGraph is running:%d",isRunning);
-    handleError(AUGraphStart(_graph),
-                "resume AUGraph failed",
-                ^{
-                    
-                });
-}
-
 - (void)stop {
-    BOOL isRunning = [self graphRunningState];
-    LXLog(@"AUGraph is running:%d",isRunning);
     //clear AUGraph
     handleError(AUGraphStop(_graph),
                 "stop AUGraph failed", ^{
                     
                 });
-    [self destroyGraph];
-    //clear pthread locks
-    [self destroyLocks];
-    
-    //clear audio player
-    [self destroyRingBuffer];
-    [self destroyAudioConverter];
-    [self destroyInputStream];
-    [self destroyAudioFileStreamService];
 }
 
 - (void)seekToTime:(float)seekTime {

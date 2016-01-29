@@ -13,6 +13,8 @@
 
 - (id)initWithDataPCMFormat:(AudioStreamBasicDescription)pcmFormat seconds:(float)seconds;
 
+- (void)reset;
+
 - (void)destroy;
 
 //specify whether the ring buffer needs data

@@ -10,9 +10,12 @@
 #import "LXAudioPlayer.h"
 #import <AVFoundation/AVFoundation.h>
 
+#define Test_AVAudioPlayer
+
 @interface ViewController ()
 
-@property(nonatomic,strong)LXAudioPlayer *lxPlayer;
+@property(nonatomic)LXAudioPlayer *lxPlayer;
+@property(nonatomic)AVAudioPlayer *player;
 
 @end
 
@@ -27,6 +30,8 @@
     NSURL *url = [[NSURL alloc] initFileURLWithPath:fileString];
     //the lxPlayer must be of a global variable, or it'll be released before playing.
     self.lxPlayer = [[LXAudioPlayer alloc] initWithURL:url];
+    self.player = [[AVAudioPlayer alloc] initWithContentsOfURL:url
+                                                         error:nil];
     
     UIButton *playButton = [UIButton buttonWithType:UIButtonTypeRoundedRect];
     [playButton setFrame:CGRectMake(100, 10, 100, 25)];
@@ -57,24 +62,38 @@
 }
 
 - (void)play {
+#ifdef Test_AVAudioPlayer
     [self.lxPlayer play];
+#else
+    [self.player play];
+#endif
 }
 
 - (void)pause:(UIButton *)button {
     if ([button.titleLabel.text isEqualToString:@"Pause"]) {
-        //[self.lxPlayer pause];
         [button setTitle:@"Resume" forState:UIControlStateNormal];
+#ifdef Test_AVAudioPlayer
         [self.lxPlayer pause];
+#else
+        [self.player pause];
+#endif
     }else {
-        //[self.lxPlayer resume];
         [button setTitle:@"Pause" forState:UIControlStateNormal];
-        [self.lxPlayer pause];
+#ifdef Test_AVAudioPlayer
+        [self.lxPlayer play];
+#else
+        [self.player play];
+#endif
     }
     
 }
 
 - (void)stop {
+#ifdef Test_AVAudioPlayer
     [self.lxPlayer stop];
+#else
+    [self.player stop];
+#endif
 }
 
 - (void)setupSession {
