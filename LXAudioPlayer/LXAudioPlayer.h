@@ -20,6 +20,7 @@
 //a boolean value that indicates whether the audio is playing
 @property(readonly) BOOL isPlaying;
 //duration of the audio
+//TODO:update this property at proper time
 @property(readonly) float duration;
 //the playback volume of the audio player, ranging from 0.0 to 1.0
 @property(readonly) float volume;
@@ -27,8 +28,6 @@
 @property(readonly) NSUInteger numberOfChannels;
 //the playback position, in seconds
 @property(readonly) NSTimeInterval currentTime;
-
-//TODO:initWithBufferSizeSeconds
 
 - (id)initWithURL:(NSURL *)url;
 

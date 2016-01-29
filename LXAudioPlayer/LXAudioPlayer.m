@@ -299,11 +299,13 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
     }
 }
 
+//TODD:fulfill this method
 - (void)reset {
     [self.ringBuffer reset];
     
 }
 
+//TODO:change return value to a real "state"
 - (BOOL)graphRunningState {
     Boolean isRunning;
     pthread_mutex_lock(&playerMutex);
@@ -334,12 +336,14 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
                 });
 }
 
+//TODO:fulfill this method
 - (void)seekToTime:(float)seekTime {
     
 }
 
 //- (void)enableCache:(BOOL)cacheEnabled{}
 
+//TODO:fulfill this method
 - (void)setCacheURL:(NSURL *)cacheURL {
     
 }
