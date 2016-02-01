@@ -12,7 +12,7 @@
 
 //notificaitons: player started, paused, ended, errored, buffering...
 
-@protocol LXAudioPLayerDelegate <NSObject>
+@protocol LXAudioPlayerDelegate <NSObject>
 
 //the duration is updated
 //note:duration may change at runtime
@@ -35,15 +35,14 @@
 @property(readonly) NSUInteger numberOfChannels;
 //the playback position, in seconds
 @property(readonly) NSTimeInterval currentTime;
-
-@property(nonatomic,assign)id<LXAudioPLayerDelegate>delegate;
+@property(nonatomic,assign)id<LXAudioPlayerDelegate>delegate;
 
 - (id)initWithURL:(NSURL *)url;
 
 - (void)play;
 - (void)pause;
 - (void)stop;
-- (void)seekToTime:(float)seekTime;
+- (NSTimeInterval)seekToTime:(NSTimeInterval)seekTime;
 
 //if enable cache, the audio data will be saved to local file; Next time play the same file, player will first play the cached data
 //-(void) enableCache:(BOOL)cacheEnabled;

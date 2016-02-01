@@ -64,7 +64,7 @@ static void handleError(OSStatus result, const char *failReason, failOperation o
 @property(nonatomic)NSNumber *inputStreamOffset;//used for seeking
 @property(nonatomic)AudioFileStreamID audioFileStream;
 @property(nonatomic)AudioStreamBasicDescription canonicalFormat;
-@property(nonatomic)AudioStreamBasicDescription converterInputFormat;
+@property(nonatomic)AudioStreamBasicDescription inputFormat;
 @property(nonatomic)AudioConverterRef audioConverter;
 
 @property(nonatomic)AUGraph graph;
@@ -233,12 +233,12 @@ void MyAudioFileStream_PropertyListenerProc(void *							inClientData,
         case kAudioFileStreamProperty_InfoDictionary:{
             LXLog(@"kAudioFileStreamProperty_InfoDictionary");
             CFDictionaryRef infoDictionary;
-            handleError(AudioFileStreamGetPropertyInfo(inAudioFileStream,
-                                                       kAudioFileStreamProperty_InfoDictionary,
-                                                       <#UInt32 * _Nullable outPropertyDataSize#>,
-                                                       <#Boolean * _Nullable outWritable#>),
-                        <#const char *failReason#>,
-                        <#^(void)operation#>);
+//            handleError(AudioFileStreamGetPropertyInfo(inAudioFileStream,
+//                                                       kAudioFileStreamProperty_InfoDictionary,
+//                                                       <#UInt32 * _Nullable outPropertyDataSize#>,
+//                                                       <#Boolean * _Nullable outWritable#>),
+//                        <#const char *failReason#>,
+//                        <#^(void)operation#>);
             break;
         }
         default:
@@ -278,7 +278,7 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
     convertInfo.packetDescriptions = inPacketDescriptions;
     convertInfo.audioBuffer.mData = (void *)inInputData;
     convertInfo.audioBuffer.mDataByteSize = inNumberBytes;
-    convertInfo.audioBuffer.mNumberChannels = player.converterInputFormat.mChannelsPerFrame;
+    convertInfo.audioBuffer.mNumberChannels = player.inputFormat.mChannelsPerFrame;
     
     //define output data of audio converter
     while (1) {
@@ -416,8 +416,33 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
 }
 
 //TODO:fulfill this method
-- (void)seekToTime:(float)seekTime {
+- (NSTimeInterval)seekToTime:(NSTimeInterval)seekTime {
+    //AudioFileStream seek
+    //TODO:check this applies to PCM, CBR and VBR
+    //TODO: can packet duration calculated based on kAudioFileStreamProperty_AverageBytesPerPacket?
+    float packetDuration = self.canonicalFormat.mFramesPerPacket/self.canonicalFormat.mSampleRate;
+    SInt64 packetOffset = floor(seekTime/packetDuration);
+    SInt64 actualByteOffset;
+    AudioFileStreamSeekFlags flags;
+    AudioFileStreamSeek(self.audioFileStream,
+                        packetOffset,
+                        &actualByteOffset,
+                        &flags);
+    //get data offset
+    SInt64 dataOffset;
+    UInt32 propSize = sizeof(dataOffset);
+    AudioFileStreamGetProperty(self.audioFileStream,
+                               kAudioFileStreamProperty_DataOffset,
+                               &propSize,
+                               &dataOffset);
+    SInt64 fileOffset = actualByteOffset + dataOffset;
+    //NSInputStream seek
+    [self.inputStream setProperty:@(fileOffset) forKey:NSStreamFileCurrentOffsetKey];
     
+    //reset ringBuffer
+    [self.ringBuffer reset];
+    
+    return actualByteOffset;
 }
 
 //- (void)enableCache:(BOOL)cacheEnabled{}
@@ -478,7 +503,7 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
                       &streamFormat,
                       &audioConverter);
     self.audioConverter = audioConverter;
-    self.converterInputFormat = *sourceFormat;
+    self.inputFormat = *sourceFormat;
 }
 
 - (void)destroyAudioConverter {

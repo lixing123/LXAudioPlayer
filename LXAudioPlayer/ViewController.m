@@ -12,10 +12,11 @@
 
 #define Test_AVAudioPlayer
 
-@interface ViewController ()
+@interface ViewController ()<LXAudioPlayerDelegate>
 
 @property(nonatomic)LXAudioPlayer *lxPlayer;
 @property(nonatomic)AVAudioPlayer *player;
+@property(nonatomic)UISlider *slider;
 
 @end
 
@@ -32,9 +33,10 @@
     self.lxPlayer = [[LXAudioPlayer alloc] initWithURL:url];
     self.player = [[AVAudioPlayer alloc] initWithContentsOfURL:url
                                                          error:nil];
+    self.lxPlayer.delegate = self;
     
     UIButton *playButton = [UIButton buttonWithType:UIButtonTypeRoundedRect];
-    [playButton setFrame:CGRectMake(100, 10, 100, 25)];
+    [playButton setFrame:CGRectMake(10, 100, 100, 25)];
     [playButton setTitle:@"Play"
                 forState:UIControlStateNormal];
     [playButton addTarget:self
@@ -43,7 +45,7 @@
     [self.view addSubview:playButton];
     
     UIButton *pauseButton = [UIButton buttonWithType:UIButtonTypeRoundedRect];
-    [pauseButton setFrame:CGRectMake(100, 110, 100, 25)];
+    [pauseButton setFrame:CGRectMake(110, 100, 100, 25)];
     [pauseButton setTitle:@"Pause"
                 forState:UIControlStateNormal];
     [pauseButton addTarget:self
@@ -52,13 +54,24 @@
     [self.view addSubview:pauseButton];
     
     UIButton *stopButton = [UIButton buttonWithType:UIButtonTypeRoundedRect];
-    [stopButton setFrame:CGRectMake(100, 210, 100, 25)];
+    [stopButton setFrame:CGRectMake(210, 100, 100, 25)];
     [stopButton setTitle:@"Stop"
                 forState:UIControlStateNormal];
     [stopButton addTarget:self
                    action:@selector(stop)
          forControlEvents:UIControlEventTouchUpInside];
     [self.view addSubview:stopButton];
+    
+    self.slider = [[UISlider alloc] initWithFrame:CGRectMake(10, 130, 300, 20)];
+    [self.view addSubview:self.slider];
+    self.slider.minimumValue = 0.0;
+    self.slider.maximumValue = self.lxPlayer.duration;
+    [self.slider addTarget:self
+                    action:@selector(slide:) forControlEvents:UIControlEventTouchUpInside];
+}
+
+- (void)slide:(UISlider *)aSlider {
+    [self.lxPlayer seekToTime:aSlider.value];
 }
 
 - (void)play {
@@ -111,6 +124,12 @@
 - (void)didReceiveMemoryWarning {
     [super didReceiveMemoryWarning];
     // Dispose of any resources that can be recreated.
+}
+
+#pragma mark - LXAudioPlayerDelegate
+
+- (void)didUpdateDuration {
+    self.slider.maximumValue = self.lxPlayer.duration;
 }
 
 @end

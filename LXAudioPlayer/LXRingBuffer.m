@@ -48,7 +48,9 @@
 }
 
 - (void)reset {
-    audioBufferList.mBuffers[0].mData = (void*)calloc(audioBuffer->mDataByteSize, 1);
+    memset(audioBuffer->mData, 0, audioBuffer->mDataByteSize);
+    currentByteIndex = 0;
+    currentUsedByteCount = 0;
 }
 
 - (void)destroy {
