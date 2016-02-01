@@ -658,6 +658,8 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
 }
 
 - (void)calculateDuration {
+    //TODO:if the duration is calculated accurately, break
+    //TODO:check for PCM, CBR and VBR
     if (self.bitRate==0&&self.packetDuration>0&&self.processedPacketCount>0) {
         self.bitRate = (self.processedPacketTotalSize/self.processedPacketCount)/self.packetDuration*8;
     }
