@@ -10,8 +10,15 @@
 
 //TODO:set error type
 
-//TODO: the LXAudioPLayerDelegate
 //notificaitons: player started, paused, ended, errored, buffering...
+
+@protocol LXAudioPLayerDelegate <NSObject>
+
+//the duration is updated
+//note:duration may change at runtime
+- (void)didUpdateDuration;
+
+@end
 
 @interface LXAudioPlayer : NSObject
 
@@ -21,13 +28,15 @@
 @property(readonly) BOOL isPlaying;
 //duration of the audio
 //TODO:update this property at proper time
-@property(readonly) float duration;
+@property(readonly) NSTimeInterval duration;
 //the playback volume of the audio player, ranging from 0.0 to 1.0
 @property(readonly) float volume;
 //the number of channels
 @property(readonly) NSUInteger numberOfChannels;
 //the playback position, in seconds
 @property(readonly) NSTimeInterval currentTime;
+
+@property(nonatomic,assign)id<LXAudioPLayerDelegate>delegate;
 
 - (id)initWithURL:(NSURL *)url;
 

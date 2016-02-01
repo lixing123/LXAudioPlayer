@@ -44,7 +44,7 @@ static void handleError(OSStatus result, const char *failReason, failOperation o
     
     fprintf(stderr, "Error: %s (%s)\n", failReason, errorString);
     if (!operation) {
-        exit(1);
+        //exit(1);
     }else{
         operation();
     }
@@ -57,25 +57,40 @@ static void handleError(OSStatus result, const char *failReason, failOperation o
     pthread_cond_t ringBufferFilledCondition;
 }
 
-@property(nonatomic,readwrite)float duration;
+@property(nonatomic,readwrite)NSTimeInterval duration;
 
-@property(nonatomic)AUGraph graph;
-@property(nonatomic)AudioUnit remoteIOUnit;
 @property(nonatomic)NSURL *url;
-@property(nonatomic)AudioFileStreamID audioFileStream;
 @property(nonatomic)NSInputStream *inputStream;
-@property(nonatomic)NSNumber *inputStreamOffset;
+@property(nonatomic)NSNumber *inputStreamOffset;//used for seeking
+@property(nonatomic)AudioFileStreamID audioFileStream;
 @property(nonatomic)AudioStreamBasicDescription canonicalFormat;
 @property(nonatomic)AudioStreamBasicDescription converterInputFormat;
 @property(nonatomic)AudioConverterRef audioConverter;
+
+@property(nonatomic)AUGraph graph;
+@property(nonatomic)AudioUnit remoteIOUnit;
+
 @property(nonatomic)LXRingBuffer *ringBuffer;
+//playback thread
 @property(nonatomic)NSThread *playbackThread;
 @property(nonatomic)NSRunLoop *playbackRunLoop;
 @property(nonatomic)NSConditionLock *playbackThreadRunningLock;
+@property(nonatomic)BOOL AudioFileStreamIsWaitingForSpace;//thread is waiting for data
 
-@property(nonatomic)BOOL waiting;
+//duration calculation
+//duration = dataByteCount/bitRate, or
+//duration = (fileSize-dataOffset)/bitRate
+@property(nonatomic)float dataByteCount;
+@property(nonatomic)float bitRate;
+@property(nonatomic)float fileSize;
+@property(nonatomic)float dataOffset;
+//used to calculate bit rate
+@property(nonatomic)float packetDuration;//duration of per packet
+@property(nonatomic)float processedPacketTotalSize;
+@property(nonatomic)NSInteger processedPacketCount;
 
 - (void)setupAudioConverterWithSourceFormat:(AudioStreamBasicDescription *)sourceFormat;
+- (void)calculateDuration;
 
 @end
 
@@ -103,7 +118,7 @@ static OSStatus RemoteIOUnitCallback(void *							inRefCon,
         ioData->mNumberBuffers = 1;
     }
     
-    if ([player.ringBuffer needToBeFilled]&&player.waiting) {
+    if ([player.ringBuffer needToBeFilled]&&player.AudioFileStreamIsWaitingForSpace) {
         //tell the NSInputStream delegate to continue read data
         pthread_mutex_lock(&player->ringBufferMutex);
         pthread_cond_signal(&player->ringBufferFilledCondition);
@@ -163,25 +178,56 @@ void MyAudioFileStream_PropertyListenerProc(void *							inClientData,
                             
                         });
             [player setupAudioConverterWithSourceFormat:&inputFormat];
+            player.packetDuration = inputFormat.mFramesPerPacket/inputFormat.mSampleRate;
+            [player calculateDuration];
             break;
         }
         case kAudioFileStreamProperty_AudioDataByteCount:{
-            //create a ring buffer that don't need to read circle
-            //TODO:fix bugs when ring buffer size is less than size of audio
-            //init ring buffer
-//            UInt64 fileSize;
-//            UInt32 propSize = sizeof(fileSize);
-//            handleError(AudioFileStreamGetProperty(inAudioFileStream,
-//                                                   kAudioFileStreamProperty_AudioDataByteCount,
-//                                                   &propSize,
-//                                                   &fileSize),
-//                        "kAudioFileStreamProperty_AudioDataByteCount failed",
-//                        ^{
-//                            
-//                        });
-//            player.duration = fileSize;
-//            player.ringBuffer = [[LXRingBuffer alloc] initWithDataPCMFormat:player.canonicalFormat
-//                                                                    seconds:player.duration];
+            LXLog(@"kAudioFileStreamProperty_AudioDataByteCount");
+            UInt64 audioDataByteCount;
+            UInt32 propSize = sizeof(audioDataByteCount);
+            handleError(AudioFileStreamGetProperty(inAudioFileStream,
+                                                   kAudioFileStreamProperty_AudioDataByteCount,
+                                                   &propSize,
+                                                   &audioDataByteCount),
+                        "kAudioFileStreamProperty_AudioDataByteCount failed",
+                        ^{
+                            
+                        });
+            player.dataByteCount = audioDataByteCount;
+            [player calculateDuration];
+        }
+        case kAudioFileStreamProperty_BitRate:{
+            LXLog(@"kAudioFileStreamProperty_BitRate");
+            UInt32 bitRate;
+            UInt32 propSize = sizeof(bitRate);
+            handleError(AudioFileStreamGetProperty(inAudioFileStream,
+                                                   kAudioFileStreamProperty_BitRate,
+                                                   &propSize,
+                                                   &bitRate),
+                        "AudioFileStreamGetProperty kAudioFileStreamProperty_BitRate",
+                        ^{
+                            
+                        });
+            player.bitRate = bitRate;
+            [player calculateDuration];
+            break;
+        }
+        case kAudioFileStreamProperty_DataOffset:{
+            LXLog(@"kAudioFileStreamProperty_DataOffset");
+            SInt64 dataOffset;
+            UInt32 propSize = sizeof(dataOffset);
+            handleError(AudioFileStreamGetProperty(inAudioFileStream,
+                                                   kAudioFileStreamProperty_DataOffset,
+                                                   &propSize,
+                                                   &dataOffset),
+                        "AudioFileStreamGetProperty kAudioFileStreamProperty_DataOffset",
+                        ^{
+                            
+                        });
+            player.dataOffset = dataOffset;
+            [player calculateDuration];
+            break;
         }
         default:
             break;
@@ -194,6 +240,23 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
                                     const void *					inInputData,
                                     AudioStreamPacketDescription	*inPacketDescriptions){
     LXAudioPlayer *player = (__bridge LXAudioPlayer*)inClientData;
+    
+    //update packet count and total size
+    if (inPacketDescriptions) {
+        //TODO:make this global #define variable
+        int maxPacketCount = 4096;
+        if (player.processedPacketCount<maxPacketCount) {
+            int count = maxPacketCount-player.processedPacketCount;
+            for (int i=0; i<count; i++) {
+                UInt32 packetSize = inPacketDescriptions->mDataByteSize;
+                player.processedPacketTotalSize += packetSize;
+                player.processedPacketCount++;
+                if (player.processedPacketCount==maxPacketCount) {
+                    [player calculateDuration];
+                }
+            }
+        }
+    }
     
     //define input data of audio converter
     AudioConvertInfo convertInfo;
@@ -265,6 +328,10 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
 - (id)initWithURL:(NSURL *)url {
     if (self=[super init]) {
         self.url = url;
+        
+        [self setupProperties];
+        
+        [self getFileSize];
         
         [self setupLocks];
         
@@ -349,6 +416,10 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
 }
 
 #pragma mark -
+
+- (void)setupProperties {
+    self.dataByteCount = self.bitRate = self.fileSize = self.dataOffset = self.packetDuration = self.processedPacketTotalSize = self.processedPacketCount = 0;
+}
 
 - (void)setupInputStream {
     self.inputStream = [[NSInputStream alloc] initWithURL:self.url];
@@ -540,6 +611,21 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
                 });
 }
 
+- (void)getFileSize {
+    NSString *filePath = [self.url path];
+    NSFileManager *manager = [NSFileManager defaultManager];
+    NSError *error;
+    NSDictionary *attributes = [manager attributesOfItemAtPath:filePath
+                                                         error:&error];
+    if (!error) {
+        NSNumber* size = [attributes objectForKey:@"NSFileSize"];
+        if (size) {
+            self.fileSize = size.floatValue;
+            [self calculateDuration];
+        }
+    }
+}
+
 - (void)setupLocks {
     pthread_mutex_init(&playerMutex, NULL);
     pthread_mutex_init(&ringBufferMutex, NULL);
@@ -555,12 +641,12 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
 
 - (void)setupPlaybackThread {
     self.playbackThread = [[NSThread alloc] initWithTarget:self
-                                                  selector:@selector(playback)
+                                                  selector:@selector(startPlaybackThread)
                                                     object:nil];
     [self.playbackThread start];
 }
 
-- (void)playback {
+- (void)startPlaybackThread {
     self.playbackRunLoop = [NSRunLoop currentRunLoop];
     
     [self.playbackThreadRunningLock lockWhenCondition:0];
@@ -569,6 +655,30 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
     [self.playbackRunLoop addPort:[NSPort port] forMode:NSDefaultRunLoopMode];
     //TODO:stop run loop at a proper time
     [self.playbackRunLoop run];
+}
+
+- (void)calculateDuration {
+    if (self.bitRate==0&&self.packetDuration>0&&self.processedPacketCount>0) {
+        self.bitRate = (self.processedPacketTotalSize/self.processedPacketCount)/self.packetDuration*8;
+    }
+    float dataByteCount = 0;
+    if (self.dataByteCount>0) {
+        dataByteCount = self.dataByteCount;
+    }
+    
+    if (self.fileSize>0&&self.dataOffset>0) {
+        dataByteCount = self.fileSize - self.dataOffset;
+    }
+    
+    if (dataByteCount==0 || self.bitRate==0) {
+        return;
+    }
+    
+    NSTimeInterval newDuration = dataByteCount/self.bitRate*8;
+    if (self.duration!=newDuration) {
+        self.duration = newDuration;
+        [self.delegate didUpdateDuration];
+    }
 }
 
 #pragma mark - NSStreamDelegate
@@ -594,9 +704,9 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
                             break;
                         }
                         
-                        self.waiting = YES;
+                        self.AudioFileStreamIsWaitingForSpace = YES;
                         pthread_cond_wait(&ringBufferFilledCondition, &ringBufferMutex);
-                        self.waiting = NO;
+                        self.AudioFileStreamIsWaitingForSpace = NO;
                     }
                     pthread_mutex_unlock(&ringBufferMutex);
             }
