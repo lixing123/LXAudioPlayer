@@ -34,7 +34,7 @@
 //the number of channels
 @property(readonly) NSUInteger numberOfChannels;
 //the playback position, in seconds
-@property(readonly) NSTimeInterval currentTime;
+@property(readonly) NSTimeInterval progress;
 @property(nonatomic,assign)id<LXAudioPlayerDelegate>delegate;
 
 - (id)initWithURL:(NSURL *)url;

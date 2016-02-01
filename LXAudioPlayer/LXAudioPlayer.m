@@ -58,6 +58,8 @@ static void handleError(OSStatus result, const char *failReason, failOperation o
 }
 
 @property(nonatomic,readwrite)NSTimeInterval duration;
+@property(nonatomic)BOOL durationIsAccurate;
+@property(nonatomic,readwrite)NSTimeInterval progress;
 
 @property(nonatomic)NSURL *url;
 @property(nonatomic)NSInputStream *inputStream;
@@ -87,7 +89,7 @@ static void handleError(OSStatus result, const char *failReason, failOperation o
 //used to calculate bit rate
 @property(nonatomic)float packetDuration;//duration of per packet
 @property(nonatomic)float processedPacketTotalSize;
-@property(nonatomic)NSInteger processedPacketCount;
+@property(nonatomic)int processedPacketCount;
 
 - (void)setupAudioConverterWithSourceFormat:(AudioStreamBasicDescription *)sourceFormat;
 - (void)calculateDuration;
@@ -110,6 +112,9 @@ static OSStatus RemoteIOUnitCallback(void *							inRefCon,
         ioData->mBuffers[0].mDataByteSize = ioDataByteSize;
         ioData->mBuffers[0].mNumberChannels = 1;
         ioData->mNumberBuffers = 1;
+        
+        //update progress
+        player.progress += inNumberFrames/player.canonicalFormat.mSampleRate;
     }else{
         //TODO:when no enough data, tell the delegate or do other things
         ioData->mBuffers[0].mData = calloc(ioDataByteSize, 1);
@@ -233,12 +238,29 @@ void MyAudioFileStream_PropertyListenerProc(void *							inClientData,
         case kAudioFileStreamProperty_InfoDictionary:{
             LXLog(@"kAudioFileStreamProperty_InfoDictionary");
             CFDictionaryRef infoDictionary;
-//            handleError(AudioFileStreamGetPropertyInfo(inAudioFileStream,
-//                                                       kAudioFileStreamProperty_InfoDictionary,
-//                                                       <#UInt32 * _Nullable outPropertyDataSize#>,
-//                                                       <#Boolean * _Nullable outWritable#>),
-//                        <#const char *failReason#>,
-//                        <#^(void)operation#>);
+            UInt32 propSize;
+            handleError(AudioFileStreamGetPropertyInfo(inAudioFileStream,
+                                                       kAudioFileStreamProperty_InfoDictionary,
+                                                       &propSize,
+                                                       NULL),
+                        "AudioFileStreamGetPropertyInfo kAudioFileStreamProperty_InfoDictionary",
+                        ^{
+                            
+                        });
+            handleError(AudioFileStreamGetProperty(inAudioFileStream,
+                                                   kAudioFileStreamProperty_InfoDictionary,
+                                                   &propSize,
+                                                   &infoDictionary),
+                        "AudioFileStreamGetProperty kAudioFileStreamProperty_InfoDictionary",
+                        ^{
+                            
+                        });
+            int *duration;
+            duration = (int*)CFDictionaryGetValue(infoDictionary, kAFInfoDictionary_ApproximateDurationInSeconds);
+            if (&duration>0) {
+                player.duration = *duration;
+                player.durationIsAccurate = YES;
+            }
             break;
         }
         default:
@@ -399,12 +421,13 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
 
 - (void)pause {
     BOOL isRunning = [self graphRunningState];
-    LXLog(@"AUGraph is running:%d",isRunning);
-    handleError(AUGraphStop(_graph),
-                "pause AUGraph failed",
-                ^{
-                    
-                });
+    if (isRunning) {
+        handleError(AUGraphStop(_graph),
+                    "pause AUGraph failed",
+                    ^{
+                        
+                    });
+    }
 }
 
 - (void)stop {
@@ -455,7 +478,8 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
 #pragma mark -
 
 - (void)setupProperties {
-    self.dataByteCount = self.bitRate = self.fileSize = self.dataOffset = self.packetDuration = self.processedPacketTotalSize = self.processedPacketCount = 0;
+    self.dataByteCount = self.bitRate = self.fileSize = self.dataOffset = self.packetDuration = self.processedPacketTotalSize = self.processedPacketCount = self.progress = 0;
+    self.durationIsAccurate = NO;
 }
 
 - (void)setupInputStream {
@@ -697,6 +721,10 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
 - (void)calculateDuration {
     //TODO:if the duration is calculated accurately, break
     //TODO:check for PCM, CBR and VBR
+    if (self.duration>0&&self.durationIsAccurate) {
+        return;
+    }
+    
     if (self.bitRate==0&&self.packetDuration>0&&self.processedPacketCount>0) {
         self.bitRate = (self.processedPacketTotalSize/self.processedPacketCount)/self.packetDuration*8;
     }
