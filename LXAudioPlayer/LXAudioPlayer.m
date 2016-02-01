@@ -229,6 +229,18 @@ void MyAudioFileStream_PropertyListenerProc(void *							inClientData,
             [player calculateDuration];
             break;
         }
+            //TODO:read duration from info dictionary
+        case kAudioFileStreamProperty_InfoDictionary:{
+            LXLog(@"kAudioFileStreamProperty_InfoDictionary");
+            CFDictionaryRef infoDictionary;
+            handleError(AudioFileStreamGetPropertyInfo(inAudioFileStream,
+                                                       kAudioFileStreamProperty_InfoDictionary,
+                                                       <#UInt32 * _Nullable outPropertyDataSize#>,
+                                                       <#Boolean * _Nullable outWritable#>),
+                        <#const char *failReason#>,
+                        <#^(void)operation#>);
+            break;
+        }
         default:
             break;
     }
