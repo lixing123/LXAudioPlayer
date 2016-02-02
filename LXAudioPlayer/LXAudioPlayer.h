@@ -16,7 +16,7 @@
 
 //the duration is updated
 //note:duration may change at runtime
-- (void)didUpdateDuration;
+- (void)didUpdateDuration:(float)newDuration;
 
 @end
 
@@ -35,9 +35,9 @@
 @property(readonly) NSUInteger numberOfChannels;
 //the playback position, in seconds
 @property(readonly) NSTimeInterval progress;
-@property(nonatomic,assign)id<LXAudioPlayerDelegate>delegate;
+@property(nonatomic,weak)id<LXAudioPlayerDelegate>delegate;
 
-- (id)initWithURL:(NSURL *)url;
+- (id)initWithURL:(NSURL *)url delegate:(id<LXAudioPlayerDelegate>)delegate;
 
 - (void)play;
 - (void)pause;

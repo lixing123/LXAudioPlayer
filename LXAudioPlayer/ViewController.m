@@ -17,6 +17,7 @@
 @property(nonatomic)LXAudioPlayer *lxPlayer;
 @property(nonatomic)AVAudioPlayer *player;
 @property(nonatomic)UISlider *slider;
+@property(nonatomic)UILabel *durationLabel;
 
 @end
 
@@ -30,10 +31,9 @@
     NSString *fileString = [[NSBundle mainBundle] pathForResource:@"test" ofType:@"mp3"];
     NSURL *url = [[NSURL alloc] initFileURLWithPath:fileString];
     //the lxPlayer must be of a global variable, or it'll be released before playing.
-    self.lxPlayer = [[LXAudioPlayer alloc] initWithURL:url];
+    self.lxPlayer = [[LXAudioPlayer alloc] initWithURL:url delegate:self];
     self.player = [[AVAudioPlayer alloc] initWithContentsOfURL:url
                                                          error:nil];
-    self.lxPlayer.delegate = self;
     
     UIButton *playButton = [UIButton buttonWithType:UIButtonTypeRoundedRect];
     [playButton setFrame:CGRectMake(10, 100, 100, 25)];
@@ -62,12 +62,16 @@
          forControlEvents:UIControlEventTouchUpInside];
     [self.view addSubview:stopButton];
     
-    self.slider = [[UISlider alloc] initWithFrame:CGRectMake(10, 130, 300, 20)];
+    self.slider = [[UISlider alloc] initWithFrame:CGRectMake(10, 150, 300, 20)];
     [self.view addSubview:self.slider];
     self.slider.minimumValue = 0.0;
     self.slider.maximumValue = self.lxPlayer.duration;
     [self.slider addTarget:self
                     action:@selector(slide:) forControlEvents:UIControlEventTouchUpInside];
+    
+    self.durationLabel = [[UILabel alloc] initWithFrame:CGRectMake(0, 180, 320, 30)];
+    self.durationLabel.text = @"duration:";
+    [self.view addSubview:self.durationLabel];
     
     [NSTimer scheduledTimerWithTimeInterval:1.0
                                      target:self
@@ -138,8 +142,10 @@
 
 #pragma mark - LXAudioPlayerDelegate
 
-- (void)didUpdateDuration {
-    self.slider.maximumValue = self.lxPlayer.duration;
+- (void)didUpdateDuration:(float)newDuration {
+    self.slider.maximumValue = newDuration;
+    NSLog(@"duration:%f",newDuration);
+    self.durationLabel.text = [NSString stringWithFormat:@"duration:%d:%d",(int)newDuration/60,(int)newDuration%60];
 }
 
 @end

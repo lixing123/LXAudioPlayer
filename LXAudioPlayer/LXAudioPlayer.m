@@ -372,9 +372,10 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
 
 #pragma mark -
 
-- (id)initWithURL:(NSURL *)url {
+- (id)initWithURL:(NSURL *)url delegate:(id<LXAudioPlayerDelegate>)delegate{
     if (self=[super init]) {
         self.url = url;
+        self.delegate = delegate;
         
         [self setupProperties];
         
@@ -472,7 +473,6 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
                                &propSize,
                                &dataOffset);
     SInt64 fileOffset = actualByteOffset + dataOffset;
-    LXLog(@"file offset:%lld",fileOffset);
     
     //NSInputStream seek
     [self.inputStream setProperty:@(fileOffset) forKey:NSStreamFileCurrentOffsetKey];
@@ -769,7 +769,7 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
     NSTimeInterval newDuration = dataByteCount/self.bitRate*8;
     if (self.duration!=newDuration) {
         self.duration = newDuration;
-        [self.delegate didUpdateDuration];
+        [self.delegate didUpdateDuration:self.duration];
     }
 }
 
