@@ -248,7 +248,6 @@ void MyAudioFileStream_PropertyListenerProc(void *							inClientData,
             [player calculateDuration];
             break;
         }
-            //TODO:read duration from info dictionary
         case kAudioFileStreamProperty_InfoDictionary:{
             LXLog(@"kAudioFileStreamProperty_InfoDictionary");
             CFDictionaryRef infoDictionary;
@@ -452,12 +451,12 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
                 });
 }
 
-//TODO:fulfill this method
 - (NSTimeInterval)seekToTime:(NSTimeInterval)seekTime {
     //AudioFileStream seek
     //TODO:check this applies to PCM, CBR and VBR
     //TODO: can packet duration calculated based on kAudioFileStreamProperty_AverageBytesPerPacket?
-    float packetDuration = self.canonicalFormat.mFramesPerPacket/self.canonicalFormat.mSampleRate;
+    pthread_mutex_lock(&playerMutex);
+    float packetDuration = self.inputFormat.mFramesPerPacket/self.inputFormat.mSampleRate;
     SInt64 packetOffset = floor(seekTime/packetDuration);
     SInt64 actualByteOffset;
     AudioFileStreamSeekFlags flags;
@@ -473,13 +472,26 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
                                &propSize,
                                &dataOffset);
     SInt64 fileOffset = actualByteOffset + dataOffset;
+    LXLog(@"file offset:%lld",fileOffset);
+    
     //NSInputStream seek
     [self.inputStream setProperty:@(fileOffset) forKey:NSStreamFileCurrentOffsetKey];
     
     //reset ringBuffer
     [self.ringBuffer reset];
     
-    return actualByteOffset;
+    //signal playback thread
+    pthread_mutex_lock(&ringBufferMutex);
+    pthread_cond_signal(&ringBufferFilledCondition);
+    pthread_mutex_unlock(&ringBufferMutex);
+    
+    //reset converter
+    //without this line, seeking will cause "hissing"
+    AudioConverterReset(self.audioConverter);
+    
+    self.progress = seekTime;
+    pthread_mutex_unlock(&playerMutex);
+    return actualByteOffset/self.canonicalFormat.mSampleRate;
 }
 
 //- (void)enableCache:(BOOL)cacheEnabled{}
@@ -733,7 +745,6 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
 }
 
 - (void)calculateDuration {
-    //TODO:if the duration is calculated accurately, break
     //TODO:check for PCM, CBR and VBR
     if (self.duration>0&&self.durationIsAccurate) {
         return;
@@ -801,7 +812,7 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
                     
                     readLength = [aInputStream read:inputBuffer
                                           maxLength:bufferSize];
-                    
+                                        
                     AudioFileStreamParseBytes(self.audioFileStream,
                                               (UInt32)readLength,
                                               inputBuffer,

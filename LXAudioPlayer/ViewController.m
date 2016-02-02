@@ -77,7 +77,6 @@
 }
 
 - (void)updateViews {
-    NSLog(@"value:%f",self.lxPlayer.progress);
     self.slider.value = self.lxPlayer.progress;
 }
 
