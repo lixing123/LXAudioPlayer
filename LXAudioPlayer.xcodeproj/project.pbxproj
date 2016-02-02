@@ -80,12 +80,7 @@
 		8E08C5921C438CE200A8EF2C = {
 			isa = PBXGroup;
 			children = (
-				8E69B5161C50DBCC002DEFCF /* UIKit.framework */,
-				8E69B5141C50DBC7002DEFCF /* AVFoundation.framework */,
-				8E69B5121C50DB93002DEFCF /* Foundation.framework */,
-				8E69B5101C50DB8C002DEFCF /* GLKit.framework */,
-				8E69B50E1C50DB87002DEFCF /* CoreGraphics.framework */,
-				813AECB31C4B7F8100211D40 /* AudioToolbox.framework */,
+				8E5F46151C60481B0030B5FE /* Frameworks */,
 				8E08C59D1C438CE200A8EF2C /* LXAudioPlayer */,
 				8E08C5CA1C473D9000A8EF2C /* LXAudioPlayerTests */,
 				8E08C59C1C438CE200A8EF2C /* Products */,
@@ -138,6 +133,19 @@
 				8E08C5CD1C473D9000A8EF2C /* Info.plist */,
 			);
 			path = LXAudioPlayerTests;
+			sourceTree = "<group>";
+		};
+		8E5F46151C60481B0030B5FE /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				8E69B5161C50DBCC002DEFCF /* UIKit.framework */,
+				8E69B5141C50DBC7002DEFCF /* AVFoundation.framework */,
+				8E69B5121C50DB93002DEFCF /* Foundation.framework */,
+				8E69B5101C50DB8C002DEFCF /* GLKit.framework */,
+				8E69B50E1C50DB87002DEFCF /* CoreGraphics.framework */,
+				813AECB31C4B7F8100211D40 /* AudioToolbox.framework */,
+			);
+			name = Frameworks;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */

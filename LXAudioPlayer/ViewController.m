@@ -10,7 +10,7 @@
 #import "LXAudioPlayer.h"
 #import <AVFoundation/AVFoundation.h>
 
-#define Test_AVAudioPlayer
+#define Test_LXAudioPlayer
 
 @interface ViewController ()<LXAudioPlayerDelegate>
 
@@ -77,8 +77,8 @@
 }
 
 - (void)updateViews {
-    NSLog(@"current position:%f",self.lxPlayer.currentPosition);
-    self.slider.value = self.lxPlayer.currentPosition;
+    NSLog(@"value:%f",self.lxPlayer.progress);
+    self.slider.value = self.lxPlayer.progress;
 }
 
 - (void)slide:(UISlider *)aSlider {
@@ -86,7 +86,7 @@
 }
 
 - (void)play {
-#ifdef Test_AVAudioPlayer
+#ifdef Test_LXAudioPlayer
     [self.lxPlayer play];
 #else
     [self.player play];
@@ -96,14 +96,14 @@
 - (void)pause:(UIButton *)button {
     if ([button.titleLabel.text isEqualToString:@"Pause"]) {
         [button setTitle:@"Resume" forState:UIControlStateNormal];
-#ifdef Test_AVAudioPlayer
+#ifdef Test_LXAudioPlayer
         [self.lxPlayer pause];
 #else
         [self.player pause];
 #endif
     }else {
         [button setTitle:@"Pause" forState:UIControlStateNormal];
-#ifdef Test_AVAudioPlayer
+#ifdef Test_LXAudioPlayer
         [self.lxPlayer play];
 #else
         [self.player play];
@@ -113,7 +113,7 @@
 }
 
 - (void)stop {
-#ifdef Test_AVAudioPlayer
+#ifdef Test_LXAudioPlayer
     [self.lxPlayer stop];
 #else
     [self.player stop];

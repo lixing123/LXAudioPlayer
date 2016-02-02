@@ -115,6 +115,20 @@ static OSStatus RemoteIOUnitCallback(void *							inRefCon,
         
         //update progress
         player.progress += inNumberFrames/player.canonicalFormat.mSampleRate;
+        //the following code is wrong
+        //player.progress = inTimeStamp->mSampleTime/player.canonicalFormat.mSampleRate;
+        //the following code is wrong too
+//        AudioTimeStamp timeStamp = {0};
+//        UInt32 propSize = sizeof(timeStamp);
+//        handleError(AudioUnitGetProperty(player.remoteIOUnit,
+//                                         kAudioUnitProperty_CurrentPlayTime,
+//                                         kAudioUnitScope_Global,
+//                                         0,
+//                                         &timeStamp,
+//                                         &propSize),
+//                    "AudioUnitGetProperty kAudioUnitProperty_CurrentPlayTime", ^{
+//                        
+//                    });
     }else{
         //TODO:when no enough data, tell the delegate or do other things
         ioData->mBuffers[0].mData = calloc(ioDataByteSize, 1);
