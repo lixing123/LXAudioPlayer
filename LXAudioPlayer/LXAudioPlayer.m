@@ -852,7 +852,7 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
         }
         case NSStreamEventEndEncountered:{
             LXLog(@"stream event end");
-            //[self stop];
+            //TODO:tell self that stream end encountered.
             break;
         }
         default:

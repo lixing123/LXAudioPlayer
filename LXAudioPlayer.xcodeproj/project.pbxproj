@@ -197,7 +197,7 @@
 				TargetAttributes = {
 					8E08C59A1C438CE200A8EF2C = {
 						CreatedOnToolsVersion = 7.2;
-						DevelopmentTeam = ANR2YRFV52;
+						DevelopmentTeam = X3DLS4A6BR;
 					};
 					8E08C5C81C473D9000A8EF2C = {
 						CreatedOnToolsVersion = 7.2;
@@ -383,7 +383,7 @@
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				INFOPLIST_FILE = LXAudioPlayer/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
-				PRODUCT_BUNDLE_IDENTIFIER = com.lixing123.LXAudioPlayer;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.windy-yang.LXAudioPlayer";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Debug;
@@ -395,7 +395,7 @@
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				INFOPLIST_FILE = LXAudioPlayer/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
-				PRODUCT_BUNDLE_IDENTIFIER = com.lixing123.LXAudioPlayer;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.windy-yang.LXAudioPlayer";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Release;
