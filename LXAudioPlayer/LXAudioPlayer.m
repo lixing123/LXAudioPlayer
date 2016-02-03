@@ -60,8 +60,13 @@ static void handleError(OSStatus result, const char *failReason, failOperation o
 @property(nonatomic,readwrite)NSTimeInterval duration;
 @property(nonatomic)BOOL durationIsAccurate;
 @property(nonatomic,readwrite)NSTimeInterval progress;
+@property(nonatomic,readwrite)LXAudioPlayerState state;
 
 @property(nonatomic)NSURL *url;
+@property(nonatomic,readwrite)BOOL isPlaying;
+@property(nonatomic,readwrite)float volume;
+@property(nonatomic,readwrite)NSUInteger numberOfChannels;
+
 @property(nonatomic)NSInputStream *inputStream;
 @property(nonatomic)NSNumber *inputStreamOffset;//used for seeking
 @property(nonatomic)AudioFileStreamID audioFileStream;
@@ -71,7 +76,6 @@ static void handleError(OSStatus result, const char *failReason, failOperation o
 
 @property(nonatomic)AUGraph graph;
 @property(nonatomic)AudioUnit remoteIOUnit;
-
 @property(nonatomic)LXRingBuffer *ringBuffer;
 //playback thread
 @property(nonatomic)NSThread *playbackThread;
@@ -129,12 +133,16 @@ static OSStatus RemoteIOUnitCallback(void *							inRefCon,
 //                    "AudioUnitGetProperty kAudioUnitProperty_CurrentPlayTime", ^{
 //                        
 //                    });
+        
+        //TODO:calculate volume, in format of dB
+        
     }else{
         //TODO:when no enough data, tell the delegate or do other things
         ioData->mBuffers[0].mData = calloc(ioDataByteSize, 1);
         ioData->mBuffers[0].mDataByteSize = ioDataByteSize;
         ioData->mBuffers[0].mNumberChannels = 1;
         ioData->mNumberBuffers = 1;
+        player.volume = 0.0;
     }
     
     if ([player.ringBuffer needToBeFilled]&&player.AudioFileStreamIsWaitingForSpace) {
@@ -198,11 +206,11 @@ void MyAudioFileStream_PropertyListenerProc(void *							inClientData,
                         });
             [player setupAudioConverterWithSourceFormat:&inputFormat];
             player.packetDuration = inputFormat.mFramesPerPacket/inputFormat.mSampleRate;
+            player.numberOfChannels = inputFormat.mChannelsPerFrame;
             [player calculateDuration];
             break;
         }
         case kAudioFileStreamProperty_AudioDataByteCount:{
-            LXLog(@"kAudioFileStreamProperty_AudioDataByteCount");
             UInt64 audioDataByteCount;
             UInt32 propSize = sizeof(audioDataByteCount);
             handleError(AudioFileStreamGetProperty(inAudioFileStream,
@@ -217,7 +225,6 @@ void MyAudioFileStream_PropertyListenerProc(void *							inClientData,
             [player calculateDuration];
         }
         case kAudioFileStreamProperty_BitRate:{
-            LXLog(@"kAudioFileStreamProperty_BitRate");
             UInt32 bitRate;
             UInt32 propSize = sizeof(bitRate);
             handleError(AudioFileStreamGetProperty(inAudioFileStream,
@@ -233,7 +240,6 @@ void MyAudioFileStream_PropertyListenerProc(void *							inClientData,
             break;
         }
         case kAudioFileStreamProperty_DataOffset:{
-            LXLog(@"kAudioFileStreamProperty_DataOffset");
             SInt64 dataOffset;
             UInt32 propSize = sizeof(dataOffset);
             handleError(AudioFileStreamGetProperty(inAudioFileStream,
@@ -249,7 +255,6 @@ void MyAudioFileStream_PropertyListenerProc(void *							inClientData,
             break;
         }
         case kAudioFileStreamProperty_InfoDictionary:{
-            LXLog(@"kAudioFileStreamProperty_InfoDictionary");
             CFDictionaryRef infoDictionary;
             UInt32 propSize;
             handleError(AudioFileStreamGetPropertyInfo(inAudioFileStream,
@@ -404,11 +409,12 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
 - (void)play {
     BOOL isRunning = [self graphRunningState];
     if (!isRunning) {
+        self.state = kLXAudioPlayerStatePlaying;
         pthread_mutex_lock(&playerMutex);
         handleError(AUGraphStart(_graph),
                     "AUGraphStart failed",
                     ^{
-                        
+                        self.state = kLXAudioPlayerStateError;
                     });
         pthread_mutex_unlock(&playerMutex);
     }
@@ -435,20 +441,22 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
 
 - (void)pause {
     BOOL isRunning = [self graphRunningState];
+    self.state = kLXAudioPlayerStatePaused;
     if (isRunning) {
         handleError(AUGraphStop(_graph),
                     "pause AUGraph failed",
                     ^{
-                        
+                        self.state = kLXAudioPlayerStateError;
                     });
     }
 }
 
 - (void)stop {
     //clear AUGraph
+    self.state = kLXAudioPlayerStateStopped;
     handleError(AUGraphStop(_graph),
                 "stop AUGraph failed", ^{
-                    
+                    self.state = kLXAudioPlayerStateError;
                 });
 }
 
@@ -506,6 +514,7 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
 - (void)setupProperties {
     self.dataByteCount = self.bitRate = self.fileSize = self.dataOffset = self.packetDuration = self.processedPacketTotalSize = self.processedPacketCount = self.progress = 0;
     self.durationIsAccurate = NO;
+    self.isPlaying = NO;
 }
 
 - (void)setupInputStream {
@@ -534,7 +543,7 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
                                     &_audioFileStream),
                 "failed to open audio file stream",
                 ^{
-                    
+                    self.state = kLXAudioPlayerStateError;
                 });
 }
 
@@ -542,7 +551,7 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
     handleError(AudioFileStreamClose(_audioFileStream),
                 "AudioFileStreamClose failed",
                 ^{
-                    
+                    self.state = kLXAudioPlayerStateError;
                 });
 }
 
@@ -595,7 +604,7 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
     handleError(NewAUGraph(&_graph),
                 "NewAUGraph failed",
                 ^{
-                    
+                    self.state = kLXAudioPlayerStateError;
                 });
     
     //create RemoteIO audio unit
@@ -610,12 +619,12 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
                                &remoteIONode),
                 "add RemoteIO node to graph failed",
                 ^{
-                    
+                    self.state = kLXAudioPlayerStateError;
                 });
     handleError(AUGraphOpen(_graph),
                 "open graph failed",
                 ^{
-                    
+                    self.state = kLXAudioPlayerStateError;
                 });
     handleError(AUGraphNodeInfo(_graph,
                                 remoteIONode,
@@ -623,7 +632,7 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
                                 &_remoteIOUnit),
                 "AUGraphNodeInfo failed",
                 ^{
-                    
+                    self.state = kLXAudioPlayerStateError;
                 });
     
     handleError(AudioUnitSetProperty(_remoteIOUnit,
@@ -634,7 +643,7 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
                                      sizeof(_canonicalFormat)),
                 "unable to set stream format of remoteIO unit",
                 ^{
-                    
+                    self.state = kLXAudioPlayerStateError;
                 });
     
     //open output hardware(speaker) of remoteIO unit
@@ -649,7 +658,7 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
                                      size),
                 "enable speaker of remoteIO failed",
                 ^{
-                    
+                    self.state = kLXAudioPlayerStateError;
                 });
     
     //set render callback of remoteIO unit
@@ -665,14 +674,15 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
                                      sizeof(callbackStruct)),
                 "unable to set render callback of remoteIO unit",
                 ^{
-                    
+                    self.state = kLXAudioPlayerStateError;
                 });
     
     handleError(AUGraphInitialize(_graph),
                 "initialize graph failed",
                 ^{
-                    
+                    self.state = kLXAudioPlayerStateError;
                 });
+    self.state = kLXAudioPlayerStateReady;
 }
 
 - (void)destroyGraph {
@@ -769,7 +779,19 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
     NSTimeInterval newDuration = dataByteCount/self.bitRate*8;
     if (self.duration!=newDuration) {
         self.duration = newDuration;
-        [self.delegate didUpdateDuration:self.duration];
+        if ([self.delegate respondsToSelector:@selector(didUpdateDuration:)]) {
+            [self.delegate didUpdateDuration:self.duration];
+        }
+    }
+}
+
+- (void)setState:(LXAudioPlayerState)state {
+    if (_state != state) {
+        _state = state;
+        if ([self.delegate respondsToSelector:@selector(didUpdateState:)]) {
+            self.isPlaying = (state==kLXAudioPlayerStatePlaying);
+            [self.delegate didUpdateState:state];
+        }
     }
 }
 

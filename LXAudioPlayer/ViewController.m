@@ -140,12 +140,48 @@
     // Dispose of any resources that can be recreated.
 }
 
+- (void)prepareForSegue:(UIStoryboardSegue *)segue sender:(id)sender {
+    
+}
+
 #pragma mark - LXAudioPlayerDelegate
 
 - (void)didUpdateDuration:(float)newDuration {
+    //TODO:sometimes self.property are all nil, fix it
     self.slider.maximumValue = newDuration;
     NSLog(@"duration:%f",newDuration);
     self.durationLabel.text = [NSString stringWithFormat:@"duration:%d:%d",(int)newDuration/60,(int)newDuration%60];
+}
+
+- (void)didUpdateState:(LXAudioPlayerState)state {
+    switch (state) {
+        case kLXAudioPlayerStatePlaying:{
+            NSLog(@"kLXAudioPlayerStatePlaying");
+            break;
+        }
+        case kLXAudioPlayerStateReady:{
+            NSLog(@"kLXAudioPlayerStateReady");
+            break;
+        }
+        case kLXAudioPlayerStateBuffering:{
+            NSLog(@"kLXAudioPlayerStateBuffering");
+            break;
+        }
+        case kLXAudioPlayerStatePaused:{
+            NSLog(@"kLXAudioPlayerStatePaused");
+            break;
+        }
+        case kLXAudioPlayerStateStopped:{
+            NSLog(@"kLXAudioPlayerStateStopped");
+            break;
+        }
+        case kLXAudioPlayerStateError:{
+            NSLog(@"kLXAudioPlayerStateError");
+            break;
+        }
+        default:
+            break;
+    }
 }
 
 @end

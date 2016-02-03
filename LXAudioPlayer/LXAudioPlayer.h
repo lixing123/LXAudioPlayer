@@ -8,33 +8,50 @@
 
 #import <Foundation/Foundation.h>
 
-//TODO:set error type
+//playing state
+typedef UInt32 LXAudioPlayerState;
 
-//notificaitons: player started, paused, ended, errored, buffering...
+CF_ENUM(LXAudioPlayerState) {
+    kLXAudioPlayerStateReady       = 1,
+    kLXAudioPlayerStatePlaying     = 2,
+    kLXAudioPlayerStateBuffering   = 3,
+    kLXAudioPlayerStatePaused      = 4,
+    kLXAudioPlayerStateStopped     = 5,
+    kLXAudioPlayerStateError       = 6,
+};
+
+//TODO:set error type
 
 @protocol LXAudioPlayerDelegate <NSObject>
 
 //the duration is updated
 //note:duration may change at runtime
 - (void)didUpdateDuration:(float)newDuration;
+//player did update playing state
+- (void)didUpdateState:(LXAudioPlayerState)state;
+
+//TODO:when getting stream format, notify the delegate; for example, number of channels
 
 @end
 
 @interface LXAudioPlayer : NSObject
 
 //the url of the audio data, for both local and remote audio
-@property(readonly) NSURL *url;
+@property(readonly)NSURL *url;
 //a boolean value that indicates whether the audio is playing
-@property(readonly) BOOL isPlaying;
+@property(readonly)BOOL isPlaying;
 //duration of the audio
 //TODO:update this property at proper time
-@property(readonly) NSTimeInterval duration;
+@property(readonly)NSTimeInterval duration;
 //the playback volume of the audio player, ranging from 0.0 to 1.0
-@property(readonly) float volume;
-//the number of channels
-@property(readonly) NSUInteger numberOfChannels;
-//the playback position, in seconds
-@property(readonly) NSTimeInterval progress;
+//TODO:calculate volume
+@property(readonly)float volume;
+//number of channels
+@property(readonly)NSUInteger numberOfChannels;
+//playback position, in seconds
+@property(readonly)NSTimeInterval progress;
+//playing state
+@property(nonatomic,readonly)LXAudioPlayerState state;
 @property(nonatomic,weak)id<LXAudioPlayerDelegate>delegate;
 
 - (id)initWithURL:(NSURL *)url delegate:(id<LXAudioPlayerDelegate>)delegate;
