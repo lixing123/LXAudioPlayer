@@ -17,10 +17,14 @@
 
 - (void)destroy;
 
-//specify whether the ring buffer needs data
+//indicate whether the ring buffer needs data
 - (BOOL)needToBeFilled;
 
+//indicate whether the ring buffer is filled
 - (BOOL)filled;
+
+//indicates whether ring buffer has enough data
+- (BOOL)hasDataForLenghthInSeconds:(NSTimeInterval)seconds;
 
 - (BOOL)hasSpaceAvailableForEnqueue:(UInt32)spaceSize;
 

@@ -61,6 +61,7 @@ static void handleError(OSStatus result, const char *failReason, failOperation o
 @property(nonatomic)BOOL durationIsAccurate;
 @property(nonatomic,readwrite)NSTimeInterval progress;
 @property(nonatomic,readwrite)LXAudioPlayerState state;
+//when buffered data is less than the value, playing will be paused and state is buffering
 
 @property(nonatomic)NSURL *url;
 @property(nonatomic,readwrite)BOOL isPlaying;
@@ -110,33 +111,36 @@ static OSStatus RemoteIOUnitCallback(void *							inRefCon,
     
     //read from ring buffer
     UInt32 ioDataByteSize = inNumberFrames*player.canonicalFormat.mBytesPerFrame;
-    if ([player.ringBuffer hasDataAvailableForDequeue:ioDataByteSize]) {
-        [player.ringBuffer dequeueData:ioData->mBuffers[0].mData
-                        dataByteLength:ioDataByteSize];
-        ioData->mBuffers[0].mDataByteSize = ioDataByteSize;
-        ioData->mBuffers[0].mNumberChannels = 1;
-        ioData->mNumberBuffers = 1;
-        
-        //update progress
-        player.progress += inNumberFrames/player.canonicalFormat.mSampleRate;
-        //the following code is wrong
-        //player.progress = inTimeStamp->mSampleTime/player.canonicalFormat.mSampleRate;
-        //the following code is wrong too
-//        AudioTimeStamp timeStamp = {0};
-//        UInt32 propSize = sizeof(timeStamp);
-//        handleError(AudioUnitGetProperty(player.remoteIOUnit,
-//                                         kAudioUnitProperty_CurrentPlayTime,
-//                                         kAudioUnitScope_Global,
-//                                         0,
-//                                         &timeStamp,
-//                                         &propSize),
-//                    "AudioUnitGetProperty kAudioUnitProperty_CurrentPlayTime", ^{
-//                        
-//                    });
-        
-        //TODO:calculate volume, in format of dB
-        
+    if ([player.ringBuffer hasDataForLenghthInSeconds:player.minBufferLengthInSeconds]) {
+        if ([player.ringBuffer hasDataAvailableForDequeue:ioDataByteSize]) {
+            player.state = kLXAudioPlayerStatePlaying;
+            [player.ringBuffer dequeueData:ioData->mBuffers[0].mData
+                            dataByteLength:ioDataByteSize];
+            ioData->mBuffers[0].mDataByteSize = ioDataByteSize;
+            ioData->mBuffers[0].mNumberChannels = 1;
+            ioData->mNumberBuffers = 1;
+            
+            //update progress
+            player.progress += inNumberFrames/player.canonicalFormat.mSampleRate;
+            //the following code is wrong
+            //player.progress = inTimeStamp->mSampleTime/player.canonicalFormat.mSampleRate;
+            //the following code is wrong too
+            //        AudioTimeStamp timeStamp = {0};
+            //        UInt32 propSize = sizeof(timeStamp);
+            //        handleError(AudioUnitGetProperty(player.remoteIOUnit,
+            //                                         kAudioUnitProperty_CurrentPlayTime,
+            //                                         kAudioUnitScope_Global,
+            //                                         0,
+            //                                         &timeStamp,
+            //                                         &propSize),
+            //                    "AudioUnitGetProperty kAudioUnitProperty_CurrentPlayTime", ^{
+            //                        
+            //                    });
+            
+            //TODO:calculate volume, in format of dB
+        }
     }else{
+        player.state = kLXAudioPlayerStateBuffering;
         //TODO:when no enough data, tell the delegate or do other things
         ioData->mBuffers[0].mData = calloc(ioDataByteSize, 1);
         ioData->mBuffers[0].mDataByteSize = ioDataByteSize;
@@ -225,6 +229,7 @@ void MyAudioFileStream_PropertyListenerProc(void *							inClientData,
             [player calculateDuration];
         }
         case kAudioFileStreamProperty_BitRate:{
+            //TODO:bit rate sometimes wrong
             UInt32 bitRate;
             UInt32 propSize = sizeof(bitRate);
             handleError(AudioFileStreamGetProperty(inAudioFileStream,
@@ -233,7 +238,7 @@ void MyAudioFileStream_PropertyListenerProc(void *							inClientData,
                                                    &bitRate),
                         "AudioFileStreamGetProperty kAudioFileStreamProperty_BitRate",
                         ^{
-                            
+                            LXLog(@"AudioFileStreamGetProperty kAudioFileStreamProperty_BitRate");
                         });
             player.bitRate = bitRate;
             [player calculateDuration];
@@ -523,6 +528,7 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
     self.dataByteCount = self.bitRate = self.fileSize = self.dataOffset = self.packetDuration = self.processedPacketTotalSize = self.processedPacketCount = self.progress = 0;
     self.durationIsAccurate = NO;
     self.isPlaying = NO;
+    self.minBufferLengthInSeconds = 2.0;
 }
 
 - (void)setupInputStream {
@@ -532,11 +538,23 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
                                                     (__bridge CFURLRef)self.url);
     }else {
         //TODO:does this suit for every senerio?
-        CFStreamCreatePairWithSocketToHost(NULL,
-                                           (__bridge CFStringRef)self.url.absoluteString,
-                                           80,
-                                           &inputStreamRef,
-                                           NULL);
+//        CFStreamCreatePairWithSocketToHost(NULL,
+//                                           (__bridge CFStringRef)self.url.absoluteString,
+//                                           80,
+//                                           &inputStreamRef,
+//                                           NULL);
+        
+        CFHTTPMessageRef message = CFHTTPMessageCreateRequest(NULL,
+                                                              (CFStringRef)@"GET",
+                                                              (__bridge CFURLRef)self.url,
+                                                              kCFHTTPVersion1_1);
+        
+        CFHTTPMessageSetHeaderFieldValue(message, CFSTR("Accept"), CFSTR("*/*"));
+        CFHTTPMessageSetHeaderFieldValue(message, CFSTR("Ice-MetaData"), CFSTR("0"));
+        
+        //TODO:replace CFReadStreamCreateForHTTPRequest with NSURLSession
+        inputStreamRef = CFReadStreamCreateForHTTPRequest(NULL,
+                                                          message);
     }
     self.inputStream = (__bridge_transfer NSInputStream *)inputStreamRef;
     
@@ -611,7 +629,7 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
 
 - (void)setupRingBuffer {
     self.ringBuffer = [[LXRingBuffer alloc] initWithDataPCMFormat:self.canonicalFormat
-                                                          seconds:5.0];
+                                                          seconds:10.0];
 }
 
 - (void)destroyRingBuffer {
@@ -840,7 +858,6 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
             break;
         }
         case NSStreamEventHasBytesAvailable:{
-            LXLog(@"NSStreamEventHasBytesAvailable");
             //read from input file
             //if ring buffer doesn't need data, block here
             if ([self.ringBuffer filled]) {
@@ -894,18 +911,3 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
 }
 
 @end
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

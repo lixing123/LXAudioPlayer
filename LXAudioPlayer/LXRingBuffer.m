@@ -13,6 +13,8 @@
 //TODO define a OSSpinLock block
 
 @interface LXRingBuffer (){
+    AudioStreamBasicDescription ringBufferFormat;
+    
     AudioBufferList audioBufferList;
     //TODO: it seems that using multiple AudioBuffer is also possible
     AudioBuffer *audioBuffer;
@@ -23,6 +25,9 @@
     
     //TODO:add support for multithread
     OSSpinLock spinLock;
+    
+    //once min buffer length has acquired, continue dequeue data until there's no data
+    BOOL inMinBufferLength;
 }
 
 @end
@@ -31,8 +36,9 @@
 
 - (id)initWithDataPCMFormat:(AudioStreamBasicDescription)pcmFormat seconds:(float)seconds{
     if (self=[super init]) {
+        ringBufferFormat = pcmFormat;
         //init audioBuffer
-        UInt32 bufferSize = pcmFormat.mSampleRate * seconds * pcmFormat.mBytesPerFrame;
+        UInt32 bufferSize = ringBufferFormat.mSampleRate * seconds * ringBufferFormat.mBytesPerFrame;
         audioBuffer = &audioBufferList.mBuffers[0];
         audioBufferList.mNumberBuffers = 1;
         audioBufferList.mBuffers[0].mDataByteSize = bufferSize;
@@ -76,6 +82,22 @@
     return result;
 }
 
+- (BOOL)hasDataForLenghthInSeconds:(NSTimeInterval)seconds {
+    OSSpinLockLock(&spinLock);
+    if (inMinBufferLength) {
+        //LXLog(@"inMinBufferLength");
+        OSSpinLockUnlock(&spinLock);
+        return YES;
+    }
+    BOOL result = currentUsedByteCount>seconds * ringBufferFormat.mSampleRate * ringBufferFormat.mBytesPerFrame;
+    if (result) {
+        //LXLog(@"enter inMinBufferLength");
+        inMinBufferLength = YES;
+    }
+    OSSpinLockUnlock(&spinLock);
+    return result;
+}
+
 - (BOOL)hasSpaceAvailableForEnqueue:(UInt32)spaceSize {
     OSSpinLockLock(&spinLock);
     BOOL result = totalByteCount-currentUsedByteCount >= spaceSize;
@@ -86,6 +108,10 @@
 - (BOOL)hasDataAvailableForDequeue:(UInt32)dataSize {
     OSSpinLockLock(&spinLock);
     BOOL result = currentUsedByteCount >= dataSize;
+    if (result==NO) {
+        //LXLog(@"exit inMinBufferLength");
+        inMinBufferLength = NO;
+    }
     OSSpinLockUnlock(&spinLock);
     return result;
 }
@@ -161,7 +187,7 @@
     currentByteIndex = (currentByteIndex+dataByteSize)%totalByteCount;
     currentUsedByteCount -= dataByteSize;
     OSSpinLockUnlock(&spinLock);
-    //LXLog(@"ring buffer status after  dequeue: startIndex:%d     framesUsed:%d      data size:%d",currentByteIndex,currentUsedByteCount,dataByteSize);
+//    LXLog(@"ring buffer status after  dequeue: startIndex:%d     framesUsed:%d      data size:%d",currentByteIndex,currentUsedByteCount,dataByteSize);
     
     return NO;
 }

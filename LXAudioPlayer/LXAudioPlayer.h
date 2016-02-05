@@ -52,11 +52,16 @@ CF_ENUM(LXAudioPlayerState) {
 @property(readonly)NSTimeInterval progress;
 //playing state
 @property(nonatomic,readonly)LXAudioPlayerState state;
+
+//when buffered data is less than the value, playing will be paused and state is buffering
+//default is 2;
+@property(nonatomic)NSTimeInterval minBufferLengthInSeconds;
 @property(nonatomic,weak)id<LXAudioPlayerDelegate>delegate;
 
 - (id)initWithURL:(NSURL *)url delegate:(id<LXAudioPlayerDelegate>)delegate;
 
 - (void)play;
+//TODO:add a "seek and play" method
 - (void)pause;
 - (void)stop;
 - (NSTimeInterval)seekToTime:(NSTimeInterval)seekTime;
