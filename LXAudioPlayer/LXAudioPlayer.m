@@ -469,6 +469,7 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
     //AudioFileStream seek
     //TODO:check this applies to PCM, CBR and VBR
     //TODO: can packet duration calculated based on kAudioFileStreamProperty_AverageBytesPerPacket?
+    //TODO:fix bugs when seeking network resources;
     pthread_mutex_lock(&playerMutex);
     float packetDuration = self.inputFormat.mFramesPerPacket/self.inputFormat.mSampleRate;
     SInt64 packetOffset = floor(seekTime/packetDuration);
@@ -488,7 +489,11 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
     SInt64 fileOffset = actualByteOffset + dataOffset;
     
     //NSInputStream seek
-    [self.inputStream setProperty:@(fileOffset) forKey:NSStreamFileCurrentOffsetKey];
+    //TODO:sometimes file offset is much more than file size
+    LXLog(@"file offset:%lld",fileOffset);
+    BOOL result = [self.inputStream setProperty:@(fileOffset) forKey:NSStreamFileCurrentOffsetKey];
+    LXLog(@"set file offset result:%d",result);
+    LXLog(@"after offset:%d",[[self.inputStream propertyForKey:NSStreamFileCurrentOffsetKey] intValue]);
     
     //reset ringBuffer
     [self.ringBuffer reset];
