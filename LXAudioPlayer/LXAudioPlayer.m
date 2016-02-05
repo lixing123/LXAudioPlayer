@@ -511,6 +511,14 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
 
 #pragma mark -
 
+- (BOOL)isLocalFile {
+    NSRange range;
+    range.location = 0;
+    range.length = 4;
+    NSString *headerString = [self.url.absoluteString substringWithRange:range];
+    return [headerString isEqualToString:@"file"];
+}
+
 - (void)setupProperties {
     self.dataByteCount = self.bitRate = self.fileSize = self.dataOffset = self.packetDuration = self.processedPacketTotalSize = self.processedPacketCount = self.progress = 0;
     self.durationIsAccurate = NO;
@@ -518,7 +526,20 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
 }
 
 - (void)setupInputStream {
-    self.inputStream = [[NSInputStream alloc] initWithURL:self.url];
+    CFReadStreamRef inputStreamRef;
+    if ([self isLocalFile]) {
+        inputStreamRef = CFReadStreamCreateWithFile(kCFAllocatorDefault,
+                                                    (__bridge CFURLRef)self.url);
+    }else {
+        //TODO:does this suit for every senerio?
+        CFStreamCreatePairWithSocketToHost(NULL,
+                                           (__bridge CFStringRef)self.url.absoluteString,
+                                           80,
+                                           &inputStreamRef,
+                                           NULL);
+    }
+    self.inputStream = (__bridge_transfer NSInputStream *)inputStreamRef;
+    
     self.inputStream.delegate = self;
     //make sure the playback thread is already running
     [self.playbackThreadRunningLock lockWhenCondition:1];
@@ -709,16 +730,19 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
 }
 
 - (void)getFileSize {
-    NSString *filePath = [self.url path];
-    NSFileManager *manager = [NSFileManager defaultManager];
-    NSError *error;
-    NSDictionary *attributes = [manager attributesOfItemAtPath:filePath
-                                                         error:&error];
-    if (!error) {
-        NSNumber* size = [attributes objectForKey:@"NSFileSize"];
-        if (size) {
-            self.fileSize = size.floatValue;
-            [self calculateDuration];
+    //if url begin with "file:",then it's a local file
+    if ([self isLocalFile]) {
+        NSString *filePath = [self.url path];
+        NSFileManager *manager = [NSFileManager defaultManager];
+        NSError *error;
+        NSDictionary *attributes = [manager attributesOfItemAtPath:filePath
+                                                             error:&error];
+        if (!error) {
+            NSNumber* size = [attributes objectForKey:@"NSFileSize"];
+            if (size) {
+                self.fileSize = size.floatValue;
+                [self calculateDuration];
+            }
         }
     }
 }
@@ -792,7 +816,14 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
             self.isPlaying = (state==kLXAudioPlayerStatePlaying);
             [self.delegate didUpdateState:state];
         }
+        
+        if (state==kLXAudioPlayerStateError) {
+            [self cleanup];
+        }
     }
+}
+
+- (void) cleanup {
 }
 
 #pragma mark - NSStreamDelegate
@@ -809,6 +840,7 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
             break;
         }
         case NSStreamEventHasBytesAvailable:{
+            LXLog(@"NSStreamEventHasBytesAvailable");
             //read from input file
             //if ring buffer doesn't need data, block here
             if ([self.ringBuffer filled]) {
@@ -847,7 +879,8 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
             break;
         }
         case NSStreamEventErrorOccurred:{
-            LXLog(@"stream event error");
+            LXLog(@"stream event error:%@",self.inputStream.streamError);
+            self.state = kLXAudioPlayerStateError;
             break;
         }
         case NSStreamEventEndEncountered:{
