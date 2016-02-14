@@ -88,7 +88,7 @@ static void handleError(OSStatus result, const char *failReason, failOperation o
 //duration = dataByteCount/bitRate, or
 //duration = (fileSize-dataOffset)/bitRate
 @property(nonatomic)float dataByteCount;
-@property(nonatomic)float bitRate;
+@property(nonatomic)float bitRate;//bits per second
 @property(nonatomic)float fileSize;
 @property(nonatomic)float dataOffset;
 //used to calculate bit rate
@@ -230,17 +230,18 @@ void MyAudioFileStream_PropertyListenerProc(void *							inClientData,
         }
         case kAudioFileStreamProperty_BitRate:{
             //TODO:bit rate sometimes wrong
-            UInt32 bitRate;
-            UInt32 propSize = sizeof(bitRate);
-            handleError(AudioFileStreamGetProperty(inAudioFileStream,
-                                                   kAudioFileStreamProperty_BitRate,
-                                                   &propSize,
-                                                   &bitRate),
-                        "AudioFileStreamGetProperty kAudioFileStreamProperty_BitRate",
-                        ^{
-                            LXLog(@"AudioFileStreamGetProperty kAudioFileStreamProperty_BitRate");
-                        });
-            player.bitRate = bitRate;
+//            UInt32 bitRate;
+//            UInt32 propSize = sizeof(bitRate);
+//            handleError(AudioFileStreamGetProperty(inAudioFileStream,
+//                                                   kAudioFileStreamProperty_BitRate,
+//                                                   &propSize,
+//                                                   &bitRate),
+//                        "AudioFileStreamGetProperty kAudioFileStreamProperty_BitRate",
+//                        ^{
+//                            LXLog(@"AudioFileStreamGetProperty kAudioFileStreamProperty_BitRate");
+//                        });
+//            player.bitRate = bitRate;
+//            LXLog(@"bit rate:%d",bitRate);
             [player calculateDuration];
             break;
         }
@@ -301,11 +302,11 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
     //update packet count and total size
     if (inPacketDescriptions) {
         //TODO:make this global #define variable
-        int maxPacketCount = 4096;
+        int maxPacketCount = 128;
         if (player.processedPacketCount<maxPacketCount) {
-            int count = maxPacketCount-player.processedPacketCount;
+            int count = MIN(maxPacketCount-player.processedPacketCount, inNumberPackets);
             for (int i=0; i<count; i++) {
-                UInt32 packetSize = inPacketDescriptions->mDataByteSize;
+                UInt32 packetSize = inPacketDescriptions[i].mDataByteSize;
                 player.processedPacketTotalSize += packetSize;
                 player.processedPacketCount++;
                 if (player.processedPacketCount==maxPacketCount) {
@@ -808,7 +809,7 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
     }
     
     if (self.bitRate==0&&self.packetDuration>0&&self.processedPacketCount>0) {
-        self.bitRate = (self.processedPacketTotalSize/self.processedPacketCount)/self.packetDuration*8;
+        self.bitRate = (self.processedPacketTotalSize/self.processedPacketCount)/self.packetDuration*8.0;
     }
     float dataByteCount = 0;
     if (self.dataByteCount>0) {
@@ -823,7 +824,7 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
         return;
     }
     
-    NSTimeInterval newDuration = dataByteCount/self.bitRate*8;
+    NSTimeInterval newDuration = dataByteCount/(self.bitRate/8.0);
     if (self.duration!=newDuration) {
         self.duration = newDuration;
         if ([self.delegate respondsToSelector:@selector(didUpdateDuration:)]) {
