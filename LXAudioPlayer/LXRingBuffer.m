@@ -68,6 +68,13 @@
     audioBuffer->mData = NULL;
 }
 
+- (BOOL)isEmpty {
+    OSSpinLockLock(&spinLock);
+    BOOL result = (currentUsedByteCount==0);
+    OSSpinLockUnlock(&spinLock);
+    return result;
+}
+
 - (BOOL)needToBeFilled {
     OSSpinLockLock(&spinLock);
     BOOL result = ((float)currentUsedByteCount/(float)totalByteCount<0.7);

@@ -17,6 +17,8 @@
 
 - (void)destroy;
 
+- (BOOL)isEmpty;
+
 //indicate whether the ring buffer needs data
 - (BOOL)needToBeFilled;
 

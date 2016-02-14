@@ -69,7 +69,9 @@ static void handleError(OSStatus result, const char *failReason, failOperation o
 @property(nonatomic,readwrite)NSUInteger numberOfChannels;
 
 @property(nonatomic)NSInputStream *inputStream;
-@property(nonatomic)NSNumber *inputStreamOffset;//used for seeking
+@property(nonatomic)BOOL inputStreamEndEncountered;
+@property(nonatomic)BOOL shouldSeek;//this is used for every seeking operation
+@property(nonatomic)NSTimeInterval seekOffset;
 @property(nonatomic)AudioFileStreamID audioFileStream;
 @property(nonatomic)AudioStreamBasicDescription canonicalFormat;
 @property(nonatomic)AudioStreamBasicDescription inputFormat;
@@ -80,6 +82,7 @@ static void handleError(OSStatus result, const char *failReason, failOperation o
 @property(nonatomic)LXRingBuffer *ringBuffer;
 //playback thread
 @property(nonatomic)NSThread *playbackThread;
+@property(nonatomic)BOOL playbackThreadShouldKeepRunning;
 @property(nonatomic)NSRunLoop *playbackRunLoop;
 @property(nonatomic)NSConditionLock *playbackThreadRunningLock;
 @property(nonatomic)BOOL AudioFileStreamIsWaitingForSpace;//thread is waiting for data
@@ -98,6 +101,7 @@ static void handleError(OSStatus result, const char *failReason, failOperation o
 
 - (void)setupAudioConverterWithSourceFormat:(AudioStreamBasicDescription *)sourceFormat;
 - (void)calculateDuration;
+- (void) cleanup;
 
 @end
 
@@ -140,13 +144,17 @@ static OSStatus RemoteIOUnitCallback(void *							inRefCon,
             //TODO:calculate volume, in format of dB
         }
     }else{
-        player.state = kLXAudioPlayerStateBuffering;
-        //TODO:when no enough data, tell the delegate or do other things
-        ioData->mBuffers[0].mData = calloc(ioDataByteSize, 1);
-        ioData->mBuffers[0].mDataByteSize = ioDataByteSize;
-        ioData->mBuffers[0].mNumberChannels = 1;
-        ioData->mNumberBuffers = 1;
-        player.volume = 0.0;
+        //playing end, clean up
+        if ([player.ringBuffer isEmpty]&&player.inputStreamEndEncountered) {
+            [player cleanup];
+        }else {
+            player.state = kLXAudioPlayerStateBuffering;
+            ioData->mBuffers[0].mData = calloc(ioDataByteSize, 1);
+            ioData->mBuffers[0].mDataByteSize = ioDataByteSize;
+            ioData->mBuffers[0].mNumberChannels = 1;
+            ioData->mNumberBuffers = 1;
+            player.volume = 0.0;
+        }
     }
     
     if ([player.ringBuffer needToBeFilled]&&player.AudioFileStreamIsWaitingForSpace) {
@@ -430,6 +438,9 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
 - (void)reset {
     [self.ringBuffer reset];
     
+    //reset converter
+    //without this line, seeking will cause "hissing"
+    AudioConverterReset(self.audioConverter);
 }
 
 //TODO:change return value to a real "state"
@@ -466,11 +477,10 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
                 });
 }
 
-- (NSTimeInterval)seekToTime:(NSTimeInterval)seekTime {
+- (void)seekToTime:(NSTimeInterval)seekTime {
     //AudioFileStream seek
     //TODO:check this applies to PCM, CBR and VBR
     //TODO: can packet duration calculated based on kAudioFileStreamProperty_AverageBytesPerPacket?
-    //TODO:fix bugs when seeking network resources;
     pthread_mutex_lock(&playerMutex);
     float packetDuration = self.inputFormat.mFramesPerPacket/self.inputFormat.mSampleRate;
     SInt64 packetOffset = floor(seekTime/packetDuration);
@@ -488,29 +498,35 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
                                &propSize,
                                &dataOffset);
     SInt64 fileOffset = actualByteOffset + dataOffset;
-    
-    //NSInputStream seek
-    //TODO:sometimes file offset is much more than file size
-    LXLog(@"file offset:%lld",fileOffset);
-    BOOL result = [self.inputStream setProperty:@(fileOffset) forKey:NSStreamFileCurrentOffsetKey];
-    LXLog(@"set file offset result:%d",result);
-    LXLog(@"after offset:%d",[[self.inputStream propertyForKey:NSStreamFileCurrentOffsetKey] intValue]);
-    
-    //reset ringBuffer
-    [self.ringBuffer reset];
-    
-    //signal playback thread
-    pthread_mutex_lock(&ringBufferMutex);
-    pthread_cond_signal(&ringBufferFilledCondition);
-    pthread_mutex_unlock(&ringBufferMutex);
-    
-    //reset converter
-    //without this line, seeking will cause "hissing"
-    AudioConverterReset(self.audioConverter);
-    
-    self.progress = seekTime;
-    pthread_mutex_unlock(&playerMutex);
-    return actualByteOffset/self.canonicalFormat.mSampleRate;
+    if (![self isLocalFile]) {
+        self.shouldSeek = YES;
+        self.seekOffset = seekTime;
+        [self destroyInputStream];
+        [self setupInputStream];
+    }else {
+        //NSInputStream seek
+        LXLog(@"file offset:%lld",fileOffset);
+        //TODO:for http resources, we should use other methods
+        BOOL result = [self.inputStream setProperty:@(fileOffset) forKey:NSStreamFileCurrentOffsetKey];
+        if (!result) {
+            //seeking failed
+            LXLog(@"seeking failed");
+            return;
+        }
+        LXLog(@"set file offset result:%d",result);
+        LXLog(@"after offset:%d",[[self.inputStream propertyForKey:NSStreamFileCurrentOffsetKey] intValue]);
+        
+        //reset ringBuffer
+        [self.ringBuffer reset];
+        
+        //signal playback thread
+        pthread_mutex_lock(&ringBufferMutex);
+        pthread_cond_signal(&ringBufferFilledCondition);
+        pthread_mutex_unlock(&ringBufferMutex);
+        
+        self.progress = seekTime;
+        pthread_mutex_unlock(&playerMutex);
+    }
 }
 
 //- (void)enableCache:(BOOL)cacheEnabled{}
@@ -532,8 +548,9 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
 
 - (void)setupProperties {
     self.dataByteCount = self.bitRate = self.fileSize = self.dataOffset = self.packetDuration = self.processedPacketTotalSize = self.processedPacketCount = self.progress = 0;
-    self.durationIsAccurate = NO;
-    self.isPlaying = NO;
+    self.durationIsAccurate = self.isPlaying = self.inputStreamEndEncountered = self.shouldSeek = NO;
+    self.playbackThreadShouldKeepRunning = YES;
+    self.seekOffset = 0.0;
     self.minBufferLengthInSeconds = 2.0;
 }
 
@@ -543,20 +560,25 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
         inputStreamRef = CFReadStreamCreateWithFile(kCFAllocatorDefault,
                                                     (__bridge CFURLRef)self.url);
     }else {
-        //TODO:does this suit for every senerio?
-//        CFStreamCreatePairWithSocketToHost(NULL,
-//                                           (__bridge CFStringRef)self.url.absoluteString,
-//                                           80,
-//                                           &inputStreamRef,
-//                                           NULL);
-        
         CFHTTPMessageRef message = CFHTTPMessageCreateRequest(NULL,
                                                               (CFStringRef)@"GET",
                                                               (__bridge CFURLRef)self.url,
                                                               kCFHTTPVersion1_1);
+        //TODO:perform seek operation
+        if (self.shouldSeek)
+        {
+            CFHTTPMessageSetHeaderFieldValue(message,
+                                             CFSTR("Range"),
+                                             (__bridge CFStringRef)[NSString stringWithFormat:@"bytes=%f-", self.seekOffset]);
+            self.shouldSeek = NO;
+        }
         
-        CFHTTPMessageSetHeaderFieldValue(message, CFSTR("Accept"), CFSTR("*/*"));
-        CFHTTPMessageSetHeaderFieldValue(message, CFSTR("Ice-MetaData"), CFSTR("0"));
+        CFHTTPMessageSetHeaderFieldValue(message,
+                                         CFSTR("Accept"),
+                                         CFSTR("*/*"));
+        CFHTTPMessageSetHeaderFieldValue(message,
+                                         CFSTR("Ice-MetaData"),
+                                         CFSTR("0"));
         
         //TODO:replace CFReadStreamCreateForHTTPRequest with NSURLSession
         inputStreamRef = CFReadStreamCreateForHTTPRequest(NULL,
@@ -799,7 +821,11 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
     
     [self.playbackRunLoop addPort:[NSPort port] forMode:NSDefaultRunLoopMode];
     //TODO:stop run loop at a proper time
-    [self.playbackRunLoop run];
+    while (self.playbackThreadShouldKeepRunning) {
+        //TODO:does 10 seconds suit?
+        [self.playbackRunLoop runMode:NSDefaultRunLoopMode
+                           beforeDate:[NSDate dateWithTimeIntervalSinceNow:10.0]];
+    }
 }
 
 - (void)calculateDuration {
@@ -848,6 +874,17 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
 }
 
 - (void) cleanup {
+    [self destroyGraph];
+    
+    [self destroyRingBuffer];
+    
+    [self destroyAudioFileStreamService];
+    
+    [self destroyInputStream];
+    
+    //TODO:destroy playback thread
+    
+    [self destroyLocks];
 }
 
 #pragma mark - NSStreamDelegate
@@ -908,7 +945,7 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
         }
         case NSStreamEventEndEncountered:{
             LXLog(@"stream event end");
-            //TODO:tell self that stream end encountered.
+            self.inputStreamEndEncountered = YES;
             break;
         }
         default:

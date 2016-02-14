@@ -53,7 +53,7 @@ CF_ENUM(LXAudioPlayerState) {
 //playing state
 @property(nonatomic,readonly)LXAudioPlayerState state;
 
-//when buffered data is less than the value, playing will be paused and state is buffering
+//when buffered data is less than the value, playing will be paused and state will be set to buffering
 //default is 2;
 @property(nonatomic)NSTimeInterval minBufferLengthInSeconds;
 @property(nonatomic,weak)id<LXAudioPlayerDelegate>delegate;
@@ -64,7 +64,8 @@ CF_ENUM(LXAudioPlayerState) {
 //TODO:add a "seek and play" method
 - (void)pause;
 - (void)stop;
-- (NSTimeInterval)seekToTime:(NSTimeInterval)seekTime;
+//note:seeking may fail, so you should check progress after seeking
+- (void)seekToTime:(NSTimeInterval)seekTime;
 
 //if enable cache, the audio data will be saved to local file; Next time play the same file, player will first play the cached data
 //-(void) enableCache:(BOOL)cacheEnabled;
