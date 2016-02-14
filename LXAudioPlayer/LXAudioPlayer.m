@@ -420,6 +420,23 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
     return self;
 }
 
+- (void) cleanup {
+    [self destroyGraph];
+    
+    [self destroyRingBuffer];
+    
+    [self destroyAudioFileStreamService];
+    
+    [self destroyInputStream];
+    
+    //TODO:destroy playback thread
+    
+    //TODO:destroy AudioConverter
+    
+    [self destroyLocks];
+}
+
+
 - (void)play {
     BOOL isRunning = [self graphRunningState];
     if (!isRunning) {
@@ -871,20 +888,6 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
             [self cleanup];
         }
     }
-}
-
-- (void) cleanup {
-    [self destroyGraph];
-    
-    [self destroyRingBuffer];
-    
-    [self destroyAudioFileStreamService];
-    
-    [self destroyInputStream];
-    
-    //TODO:destroy playback thread
-    
-    [self destroyLocks];
 }
 
 #pragma mark - NSStreamDelegate
