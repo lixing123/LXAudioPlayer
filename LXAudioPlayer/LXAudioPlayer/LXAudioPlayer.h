@@ -43,6 +43,7 @@ CF_ENUM(LXAudioPlayerState) {
 //note:duration may change at runtime
 - (void)didUpdateDuration:(float)newDuration;
 //player did update playing state
+//TODO:this method should be called in main thread
 - (void)didUpdateState:(LXAudioPlayerState)state;
 
 //TODO:when getting stream format, notify the delegate; for example, number of channels

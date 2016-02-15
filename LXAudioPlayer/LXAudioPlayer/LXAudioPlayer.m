@@ -7,7 +7,6 @@
 //
 
 #import "LXAudioPlayer.h"
-#import "LXHeader.h"
 #import <AudioToolbox/AudioToolbox.h>
 #import "LXRingBuffer.h"
 #import <pthread/pthread.h>

@@ -7,74 +7,85 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		8119F0231C721378008B2E0D /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 8119F0221C721378008B2E0D /* main.m */; };
-		8119F0261C721378008B2E0D /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 8119F0251C721378008B2E0D /* AppDelegate.m */; };
-		8119F0291C721378008B2E0D /* ViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 8119F0281C721378008B2E0D /* ViewController.m */; };
-		8119F02C1C721378008B2E0D /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 8119F02A1C721378008B2E0D /* Main.storyboard */; };
-		8119F02E1C721378008B2E0D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 8119F02D1C721378008B2E0D /* Assets.xcassets */; };
-		8119F0311C721378008B2E0D /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 8119F02F1C721378008B2E0D /* LaunchScreen.storyboard */; };
+		8119F0D01C721BB0008B2E0D /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 8119F0CF1C721BB0008B2E0D /* main.m */; };
+		8119F0D31C721BB0008B2E0D /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 8119F0D21C721BB0008B2E0D /* AppDelegate.m */; };
+		8119F0D61C721BB0008B2E0D /* ViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 8119F0D51C721BB0008B2E0D /* ViewController.m */; };
+		8119F0D91C721BB0008B2E0D /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 8119F0D71C721BB0008B2E0D /* Main.storyboard */; };
+		8119F0DB1C721BB0008B2E0D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 8119F0DA1C721BB0008B2E0D /* Assets.xcassets */; };
+		8119F0DE1C721BB0008B2E0D /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 8119F0DC1C721BB0008B2E0D /* LaunchScreen.storyboard */; };
+		8119F0E61C721BDA008B2E0D /* test.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = 8119F0E51C721BDA008B2E0D /* test.mp3 */; };
+		8119F0E81C721BE5008B2E0D /* libLXAudioPlayer.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 8119F0E71C721BE5008B2E0D /* libLXAudioPlayer.a */; };
+		8119F0EA1C721BEA008B2E0D /* AudioToolbox.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 8119F0E91C721BEA008B2E0D /* AudioToolbox.framework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		8119F01E1C721378008B2E0D /* iOSExample.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = iOSExample.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		8119F0221C721378008B2E0D /* main.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; };
-		8119F0241C721378008B2E0D /* AppDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = AppDelegate.h; sourceTree = "<group>"; };
-		8119F0251C721378008B2E0D /* AppDelegate.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = AppDelegate.m; sourceTree = "<group>"; };
-		8119F0271C721378008B2E0D /* ViewController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ViewController.h; sourceTree = "<group>"; };
-		8119F0281C721378008B2E0D /* ViewController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = ViewController.m; sourceTree = "<group>"; };
-		8119F02B1C721378008B2E0D /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
-		8119F02D1C721378008B2E0D /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
-		8119F0301C721378008B2E0D /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
-		8119F0321C721378008B2E0D /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		8119F0CB1C721BB0008B2E0D /* iOSExample.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = iOSExample.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		8119F0CF1C721BB0008B2E0D /* main.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; };
+		8119F0D11C721BB0008B2E0D /* AppDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = AppDelegate.h; sourceTree = "<group>"; };
+		8119F0D21C721BB0008B2E0D /* AppDelegate.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = AppDelegate.m; sourceTree = "<group>"; };
+		8119F0D41C721BB0008B2E0D /* ViewController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ViewController.h; sourceTree = "<group>"; };
+		8119F0D51C721BB0008B2E0D /* ViewController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = ViewController.m; sourceTree = "<group>"; };
+		8119F0D81C721BB0008B2E0D /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
+		8119F0DA1C721BB0008B2E0D /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		8119F0DD1C721BB0008B2E0D /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
+		8119F0DF1C721BB0008B2E0D /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		8119F0E51C721BDA008B2E0D /* test.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = test.mp3; sourceTree = "<group>"; };
+		8119F0E71C721BE5008B2E0D /* libLXAudioPlayer.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libLXAudioPlayer.a; path = "../LXAudioPlayer/build/Debug-iphoneos/libLXAudioPlayer.a"; sourceTree = "<group>"; };
+		8119F0E91C721BEA008B2E0D /* AudioToolbox.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AudioToolbox.framework; path = System/Library/Frameworks/AudioToolbox.framework; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
-		8119F01B1C721378008B2E0D /* Frameworks */ = {
+		8119F0C81C721BB0008B2E0D /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				8119F0EA1C721BEA008B2E0D /* AudioToolbox.framework in Frameworks */,
+				8119F0E81C721BE5008B2E0D /* libLXAudioPlayer.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		8119F0151C721378008B2E0D = {
+		8119F0C21C721BB0008B2E0D = {
 			isa = PBXGroup;
 			children = (
-				8119F0201C721378008B2E0D /* iOSExample */,
-				8119F01F1C721378008B2E0D /* Products */,
+				8119F0E91C721BEA008B2E0D /* AudioToolbox.framework */,
+				8119F0E71C721BE5008B2E0D /* libLXAudioPlayer.a */,
+				8119F0CD1C721BB0008B2E0D /* iOSExample */,
+				8119F0CC1C721BB0008B2E0D /* Products */,
 			);
 			sourceTree = "<group>";
 		};
-		8119F01F1C721378008B2E0D /* Products */ = {
+		8119F0CC1C721BB0008B2E0D /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				8119F01E1C721378008B2E0D /* iOSExample.app */,
+				8119F0CB1C721BB0008B2E0D /* iOSExample.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
 		};
-		8119F0201C721378008B2E0D /* iOSExample */ = {
+		8119F0CD1C721BB0008B2E0D /* iOSExample */ = {
 			isa = PBXGroup;
 			children = (
-				8119F0241C721378008B2E0D /* AppDelegate.h */,
-				8119F0251C721378008B2E0D /* AppDelegate.m */,
-				8119F0271C721378008B2E0D /* ViewController.h */,
-				8119F0281C721378008B2E0D /* ViewController.m */,
-				8119F02A1C721378008B2E0D /* Main.storyboard */,
-				8119F02D1C721378008B2E0D /* Assets.xcassets */,
-				8119F02F1C721378008B2E0D /* LaunchScreen.storyboard */,
-				8119F0321C721378008B2E0D /* Info.plist */,
-				8119F0211C721378008B2E0D /* Supporting Files */,
+				8119F0D11C721BB0008B2E0D /* AppDelegate.h */,
+				8119F0D21C721BB0008B2E0D /* AppDelegate.m */,
+				8119F0D41C721BB0008B2E0D /* ViewController.h */,
+				8119F0D51C721BB0008B2E0D /* ViewController.m */,
+				8119F0E51C721BDA008B2E0D /* test.mp3 */,
+				8119F0D71C721BB0008B2E0D /* Main.storyboard */,
+				8119F0DA1C721BB0008B2E0D /* Assets.xcassets */,
+				8119F0DC1C721BB0008B2E0D /* LaunchScreen.storyboard */,
+				8119F0DF1C721BB0008B2E0D /* Info.plist */,
+				8119F0CE1C721BB0008B2E0D /* Supporting Files */,
 			);
 			path = iOSExample;
 			sourceTree = "<group>";
 		};
-		8119F0211C721378008B2E0D /* Supporting Files */ = {
+		8119F0CE1C721BB0008B2E0D /* Supporting Files */ = {
 			isa = PBXGroup;
 			children = (
-				8119F0221C721378008B2E0D /* main.m */,
+				8119F0CF1C721BB0008B2E0D /* main.m */,
 			);
 			name = "Supporting Files";
 			sourceTree = "<group>";
@@ -82,13 +93,13 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		8119F01D1C721378008B2E0D /* iOSExample */ = {
+		8119F0CA1C721BB0008B2E0D /* iOSExample */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 8119F0351C721378008B2E0D /* Build configuration list for PBXNativeTarget "iOSExample" */;
+			buildConfigurationList = 8119F0E21C721BB0008B2E0D /* Build configuration list for PBXNativeTarget "iOSExample" */;
 			buildPhases = (
-				8119F01A1C721378008B2E0D /* Sources */,
-				8119F01B1C721378008B2E0D /* Frameworks */,
-				8119F01C1C721378008B2E0D /* Resources */,
+				8119F0C71C721BB0008B2E0D /* Sources */,
+				8119F0C81C721BB0008B2E0D /* Frameworks */,
+				8119F0C91C721BB0008B2E0D /* Resources */,
 			);
 			buildRules = (
 			);
@@ -96,24 +107,24 @@
 			);
 			name = iOSExample;
 			productName = iOSExample;
-			productReference = 8119F01E1C721378008B2E0D /* iOSExample.app */;
+			productReference = 8119F0CB1C721BB0008B2E0D /* iOSExample.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
-		8119F0161C721378008B2E0D /* Project object */ = {
+		8119F0C31C721BB0008B2E0D /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
 				LastUpgradeCheck = 0720;
 				ORGANIZATIONNAME = xinglii;
 				TargetAttributes = {
-					8119F01D1C721378008B2E0D = {
+					8119F0CA1C721BB0008B2E0D = {
 						CreatedOnToolsVersion = 7.2.1;
 					};
 				};
 			};
-			buildConfigurationList = 8119F0191C721378008B2E0D /* Build configuration list for PBXProject "iOSExample" */;
+			buildConfigurationList = 8119F0C61C721BB0008B2E0D /* Build configuration list for PBXProject "iOSExample" */;
 			compatibilityVersion = "Xcode 3.2";
 			developmentRegion = English;
 			hasScannedForEncodings = 0;
@@ -121,55 +132,56 @@
 				en,
 				Base,
 			);
-			mainGroup = 8119F0151C721378008B2E0D;
-			productRefGroup = 8119F01F1C721378008B2E0D /* Products */;
+			mainGroup = 8119F0C21C721BB0008B2E0D;
+			productRefGroup = 8119F0CC1C721BB0008B2E0D /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				8119F01D1C721378008B2E0D /* iOSExample */,
+				8119F0CA1C721BB0008B2E0D /* iOSExample */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
-		8119F01C1C721378008B2E0D /* Resources */ = {
+		8119F0C91C721BB0008B2E0D /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				8119F0311C721378008B2E0D /* LaunchScreen.storyboard in Resources */,
-				8119F02E1C721378008B2E0D /* Assets.xcassets in Resources */,
-				8119F02C1C721378008B2E0D /* Main.storyboard in Resources */,
+				8119F0DE1C721BB0008B2E0D /* LaunchScreen.storyboard in Resources */,
+				8119F0DB1C721BB0008B2E0D /* Assets.xcassets in Resources */,
+				8119F0E61C721BDA008B2E0D /* test.mp3 in Resources */,
+				8119F0D91C721BB0008B2E0D /* Main.storyboard in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
-		8119F01A1C721378008B2E0D /* Sources */ = {
+		8119F0C71C721BB0008B2E0D /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				8119F0291C721378008B2E0D /* ViewController.m in Sources */,
-				8119F0261C721378008B2E0D /* AppDelegate.m in Sources */,
-				8119F0231C721378008B2E0D /* main.m in Sources */,
+				8119F0D61C721BB0008B2E0D /* ViewController.m in Sources */,
+				8119F0D31C721BB0008B2E0D /* AppDelegate.m in Sources */,
+				8119F0D01C721BB0008B2E0D /* main.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXVariantGroup section */
-		8119F02A1C721378008B2E0D /* Main.storyboard */ = {
+		8119F0D71C721BB0008B2E0D /* Main.storyboard */ = {
 			isa = PBXVariantGroup;
 			children = (
-				8119F02B1C721378008B2E0D /* Base */,
+				8119F0D81C721BB0008B2E0D /* Base */,
 			);
 			name = Main.storyboard;
 			sourceTree = "<group>";
 		};
-		8119F02F1C721378008B2E0D /* LaunchScreen.storyboard */ = {
+		8119F0DC1C721BB0008B2E0D /* LaunchScreen.storyboard */ = {
 			isa = PBXVariantGroup;
 			children = (
-				8119F0301C721378008B2E0D /* Base */,
+				8119F0DD1C721BB0008B2E0D /* Base */,
 			);
 			name = LaunchScreen.storyboard;
 			sourceTree = "<group>";
@@ -177,7 +189,7 @@
 /* End PBXVariantGroup section */
 
 /* Begin XCBuildConfiguration section */
-		8119F0331C721378008B2E0D /* Debug */ = {
+		8119F0E01C721BB0008B2E0D /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
@@ -221,7 +233,7 @@
 			};
 			name = Debug;
 		};
-		8119F0341C721378008B2E0D /* Release */ = {
+		8119F0E11C721BB0008B2E0D /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
@@ -259,10 +271,11 @@
 			};
 			name = Release;
 		};
-		8119F0361C721378008B2E0D /* Debug */ = {
+		8119F0E31C721BB0008B2E0D /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				HEADER_SEARCH_PATHS = "$(PROJECT_DIR)/../LXAudioPlayer/LXAudioPlayer";
 				INFOPLIST_FILE = iOSExample/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = com.lixing123.iOSExample;
@@ -270,10 +283,11 @@
 			};
 			name = Debug;
 		};
-		8119F0371C721378008B2E0D /* Release */ = {
+		8119F0E41C721BB0008B2E0D /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				HEADER_SEARCH_PATHS = "$(PROJECT_DIR)/../LXAudioPlayer/LXAudioPlayer";
 				INFOPLIST_FILE = iOSExample/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = com.lixing123.iOSExample;
@@ -284,24 +298,24 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		8119F0191C721378008B2E0D /* Build configuration list for PBXProject "iOSExample" */ = {
+		8119F0C61C721BB0008B2E0D /* Build configuration list for PBXProject "iOSExample" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				8119F0331C721378008B2E0D /* Debug */,
-				8119F0341C721378008B2E0D /* Release */,
+				8119F0E01C721BB0008B2E0D /* Debug */,
+				8119F0E11C721BB0008B2E0D /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		8119F0351C721378008B2E0D /* Build configuration list for PBXNativeTarget "iOSExample" */ = {
+		8119F0E21C721BB0008B2E0D /* Build configuration list for PBXNativeTarget "iOSExample" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				8119F0361C721378008B2E0D /* Debug */,
-				8119F0371C721378008B2E0D /* Release */,
+				8119F0E31C721BB0008B2E0D /* Debug */,
+				8119F0E41C721BB0008B2E0D /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 		};
 /* End XCConfigurationList section */
 	};
-	rootObject = 8119F0161C721378008B2E0D /* Project object */;
+	rootObject = 8119F0C31C721BB0008B2E0D /* Project object */;
 }

@@ -7,7 +7,6 @@
 //
 
 #import "LXRingBuffer.h"
-#import "LXHeader.h"
 #import "libkern/OSAtomic.h"
 
 //TODO define a OSSpinLock block

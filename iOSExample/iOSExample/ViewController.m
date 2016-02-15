@@ -7,7 +7,7 @@
 //
 
 #import "ViewController.h"
-#import <LXAudioPlayer.h>
+#import "LXAudioPlayer.h"
 #import <AVFoundation/AVFoundation.h>
 
 #define Test_LXAudioPlayer
