@@ -34,6 +34,6 @@
 
 - (BOOL)enqueueData:(void *)data dataByteLength:(UInt32)dataByteSize;
 
-- (BOOL)dequeueData:(void *)data dataByteLength:(UInt32)dataByteSize;
+- (BOOL)dequeueData:(void *)data dataByteLength:(UInt32)dataByteSize dataEndEncountered:(BOOL)dataEndEncountered;
 
 @end

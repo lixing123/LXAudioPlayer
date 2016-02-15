@@ -17,7 +17,8 @@ CF_ENUM(LXAudioPlayerState) {
     kLXAudioPlayerStateBuffering   = 3,
     kLXAudioPlayerStatePaused      = 4,
     kLXAudioPlayerStateStopped     = 5,
-    kLXAudioPlayerStateError       = 6,
+    kLXAudioPlayerStateEnded       = 6,
+    kLXAudioPlayerStateError       = 7,
 };
 
 //TODO:set error type

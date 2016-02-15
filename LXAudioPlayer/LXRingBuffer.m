@@ -163,25 +163,26 @@
     return YES;
 }
 
-- (BOOL)dequeueData:(void *)data dataByteLength:(UInt32)dataByteSize {
-    if (![self hasDataAvailableForDequeue:dataByteSize]) {
+- (BOOL)dequeueData:(void *)data dataByteLength:(UInt32)dataByteSize dataEndEncountered:(BOOL)dataEndEncountered {
+    if (![self hasDataAvailableForDequeue:dataByteSize] && !dataEndEncountered) {
         return NO;
     }
     OSSpinLockLock(&spinLock);
+    UInt32 dataSizeToEnqueue = MIN(dataByteSize, currentUsedByteCount);
     UInt32 start = currentByteIndex;
     OSSpinLockUnlock(&spinLock);
     
     //does the buffer has a continuous data?
     BOOL hasContinuousData = NO;
     OSSpinLockLock(&spinLock);
-    if ((totalByteCount-start)>=dataByteSize) {
+    if ((totalByteCount-start)>=dataSizeToEnqueue) {
         hasContinuousData = YES;
     }
     OSSpinLockUnlock(&spinLock);
     
     //if has continuous data, just copy it
     if (hasContinuousData) {
-        memcpy(data, audioBuffer->mData+start, dataByteSize);
+        memcpy(data, audioBuffer->mData+start, dataSizeToEnqueue);
     }else{
         UInt32 firstPartDataSize = (totalByteCount-start);
         //first copy part of data from currentFrameIndex to end of buffer
@@ -191,8 +192,8 @@
     }
     
     OSSpinLockLock(&spinLock);
-    currentByteIndex = (currentByteIndex+dataByteSize)%totalByteCount;
-    currentUsedByteCount -= dataByteSize;
+    currentByteIndex = (currentByteIndex+dataSizeToEnqueue)%totalByteCount;
+    currentUsedByteCount -= dataSizeToEnqueue;
     OSSpinLockUnlock(&spinLock);
 //    LXLog(@"ring buffer status after  dequeue: startIndex:%d     framesUsed:%d      data size:%d",currentByteIndex,currentUsedByteCount,dataByteSize);
     

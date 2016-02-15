@@ -115,20 +115,22 @@ static OSStatus RemoteIOUnitCallback(void *							inRefCon,
     
     //read from ring buffer
     UInt32 ioDataByteSize = inNumberFrames*player.canonicalFormat.mBytesPerFrame;
+    //TODO:when data length in ringBuffer is less than inNumberFrames, data won't be played;fix this
     if ([player.ringBuffer hasDataForLenghthInSeconds:player.minBufferLengthInSeconds]) {
-        if ([player.ringBuffer hasDataAvailableForDequeue:ioDataByteSize]) {
+        if ([player.ringBuffer hasDataAvailableForDequeue:ioDataByteSize]||player.inputStreamEndEncountered) {
             player.state = kLXAudioPlayerStatePlaying;
             [player.ringBuffer dequeueData:ioData->mBuffers[0].mData
-                            dataByteLength:ioDataByteSize];
+                            dataByteLength:ioDataByteSize
+                        dataEndEncountered:player.inputStreamEndEncountered];
             ioData->mBuffers[0].mDataByteSize = ioDataByteSize;
             ioData->mBuffers[0].mNumberChannels = 1;
             ioData->mNumberBuffers = 1;
             
             //update progress
             player.progress += inNumberFrames/player.canonicalFormat.mSampleRate;
-            //the following code is wrong
+            //the following codes are wrong
             //player.progress = inTimeStamp->mSampleTime/player.canonicalFormat.mSampleRate;
-            //the following code is wrong too
+            //the following codes are wrong too
             //        AudioTimeStamp timeStamp = {0};
             //        UInt32 propSize = sizeof(timeStamp);
             //        handleError(AudioUnitGetProperty(player.remoteIOUnit,
@@ -138,15 +140,18 @@ static OSStatus RemoteIOUnitCallback(void *							inRefCon,
             //                                         &timeStamp,
             //                                         &propSize),
             //                    "AudioUnitGetProperty kAudioUnitProperty_CurrentPlayTime", ^{
-            //                        
+            //
             //                    });
             
             //TODO:calculate volume, in format of dB
         }
     }else{
         //playing end, clean up
-        if ([player.ringBuffer isEmpty]&&player.inputStreamEndEncountered) {
-            [player cleanup];
+        if (([player.ringBuffer isEmpty]||(!player.ringBuffer))&&player.inputStreamEndEncountered) {
+            player.state = kLXAudioPlayerStateEnded;
+            [player performSelectorOnMainThread:@selector(cleanup)
+                                     withObject:nil
+                                  waitUntilDone:NO];
         }else {
             player.state = kLXAudioPlayerStateBuffering;
             ioData->mBuffers[0].mData = calloc(ioDataByteSize, 1);
@@ -238,18 +243,18 @@ void MyAudioFileStream_PropertyListenerProc(void *							inClientData,
         }
         case kAudioFileStreamProperty_BitRate:{
             //TODO:bit rate sometimes wrong
-//            UInt32 bitRate;
-//            UInt32 propSize = sizeof(bitRate);
-//            handleError(AudioFileStreamGetProperty(inAudioFileStream,
-//                                                   kAudioFileStreamProperty_BitRate,
-//                                                   &propSize,
-//                                                   &bitRate),
-//                        "AudioFileStreamGetProperty kAudioFileStreamProperty_BitRate",
-//                        ^{
-//                            LXLog(@"AudioFileStreamGetProperty kAudioFileStreamProperty_BitRate");
-//                        });
-//            player.bitRate = bitRate;
-//            LXLog(@"bit rate:%d",bitRate);
+            //            UInt32 bitRate;
+            //            UInt32 propSize = sizeof(bitRate);
+            //            handleError(AudioFileStreamGetProperty(inAudioFileStream,
+            //                                                   kAudioFileStreamProperty_BitRate,
+            //                                                   &propSize,
+            //                                                   &bitRate),
+            //                        "AudioFileStreamGetProperty kAudioFileStreamProperty_BitRate",
+            //                        ^{
+            //                            LXLog(@"AudioFileStreamGetProperty kAudioFileStreamProperty_BitRate");
+            //                        });
+            //            player.bitRate = bitRate;
+            //            LXLog(@"bit rate:%d",bitRate);
             [player calculateDuration];
             break;
         }
@@ -421,6 +426,7 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
 }
 
 - (void) cleanup {
+    LXLog(@"cleaning up");
     [self destroyGraph];
     
     [self destroyRingBuffer];
@@ -432,6 +438,7 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
     //TODO:destroy playback thread
     
     //TODO:destroy AudioConverter
+    [self destroyAudioConverter];
     
     [self destroyLocks];
 }
@@ -522,7 +529,6 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
         [self setupInputStream];
     }else {
         //NSInputStream seek
-        LXLog(@"file offset:%lld",fileOffset);
         //TODO:for http resources, we should use other methods
         BOOL result = [self.inputStream setProperty:@(fileOffset) forKey:NSStreamFileCurrentOffsetKey];
         if (!result) {
@@ -530,8 +536,6 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
             LXLog(@"seeking failed");
             return;
         }
-        LXLog(@"set file offset result:%d",result);
-        LXLog(@"after offset:%d",[[self.inputStream propertyForKey:NSStreamFileCurrentOffsetKey] intValue]);
         
         //reset ringBuffer
         [self.ringBuffer reset];
@@ -885,7 +889,9 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
         }
         
         if (state==kLXAudioPlayerStateError) {
-            [self cleanup];
+            [self performSelectorOnMainThread:@selector(cleanup)
+                                   withObject:nil
+                                waitUntilDone:NO];
         }
     }
 }
@@ -907,17 +913,17 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
             //read from input file
             //if ring buffer doesn't need data, block here
             if ([self.ringBuffer filled]) {
-                    pthread_mutex_lock(&ringBufferMutex);
-                    while (true) {
-                        if ([self.ringBuffer needToBeFilled]) {
-                            break;
-                        }
-                        
-                        self.AudioFileStreamIsWaitingForSpace = YES;
-                        pthread_cond_wait(&ringBufferFilledCondition, &ringBufferMutex);
-                        self.AudioFileStreamIsWaitingForSpace = NO;
+                pthread_mutex_lock(&ringBufferMutex);
+                while (true) {
+                    if ([self.ringBuffer needToBeFilled]) {
+                        break;
                     }
-                    pthread_mutex_unlock(&ringBufferMutex);
+                    
+                    self.AudioFileStreamIsWaitingForSpace = YES;
+                    pthread_cond_wait(&ringBufferFilledCondition, &ringBufferMutex);
+                    self.AudioFileStreamIsWaitingForSpace = NO;
+                }
+                pthread_mutex_unlock(&ringBufferMutex);
             }
             
             if (![self.ringBuffer filled]) {
@@ -929,7 +935,7 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
                     
                     readLength = [aInputStream read:inputBuffer
                                           maxLength:bufferSize];
-                                        
+                    
                     AudioFileStreamParseBytes(self.audioFileStream,
                                               (UInt32)readLength,
                                               inputBuffer,
