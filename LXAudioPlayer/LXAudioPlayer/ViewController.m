@@ -28,10 +28,10 @@
     // Do any additional setup after loading the view, typically from a nib.
     [self setupSession];
     
-//    NSString *fileString = [[NSBundle mainBundle] pathForResource:@"test" ofType:@"mp3"];
-//    NSURL *url = [[NSURL alloc] initFileURLWithPath:fileString];
+    NSString *fileString = [[NSBundle mainBundle] pathForResource:@"test" ofType:@"mp3"];
+    NSURL *url = [[NSURL alloc] initFileURLWithPath:fileString];
     //TODO:when comes up with this url, duration seems to be wrong; need to be fixed;
-    NSURL *url = [NSURL URLWithString:@"http://www.abstractpath.com/files/audiosamples/sample.mp3"];
+//    NSURL *url = [NSURL URLWithString:@"http://www.abstractpath.com/files/audiosamples/sample.mp3"];
     //the lxPlayer must be of a global variable, or it'll be released before playing.
     self.lxPlayer = [[LXAudioPlayer alloc] initWithURL:url delegate:self];
     self.player = [[AVAudioPlayer alloc] initWithContentsOfURL:url

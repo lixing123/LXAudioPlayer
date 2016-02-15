@@ -115,7 +115,6 @@ static OSStatus RemoteIOUnitCallback(void *							inRefCon,
     
     //read from ring buffer
     UInt32 ioDataByteSize = inNumberFrames*player.canonicalFormat.mBytesPerFrame;
-    //TODO:when data length in ringBuffer is less than inNumberFrames, data won't be played;fix this
     if ([player.ringBuffer hasDataForLenghthInSeconds:player.minBufferLengthInSeconds]) {
         if ([player.ringBuffer hasDataAvailableForDequeue:ioDataByteSize]||player.inputStreamEndEncountered) {
             player.state = kLXAudioPlayerStatePlaying;
@@ -435,9 +434,6 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
     
     [self destroyInputStream];
     
-    //TODO:destroy playback thread
-    
-    //TODO:destroy AudioConverter
     [self destroyAudioConverter];
     
     [self destroyLocks];
@@ -445,7 +441,7 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
 
 
 - (void)play {
-    BOOL isRunning = [self graphRunningState];
+    BOOL isRunning = [self graphIsRunning];
     if (!isRunning) {
         self.state = kLXAudioPlayerStatePlaying;
         pthread_mutex_lock(&playerMutex);
@@ -467,8 +463,7 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
     AudioConverterReset(self.audioConverter);
 }
 
-//TODO:change return value to a real "state"
-- (BOOL)graphRunningState {
+- (BOOL)graphIsRunning {
     Boolean isRunning;
     pthread_mutex_lock(&playerMutex);
     OSStatus status = AUGraphIsRunning(_graph,
@@ -481,7 +476,7 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
 }
 
 - (void)pause {
-    BOOL isRunning = [self graphRunningState];
+    BOOL isRunning = [self graphIsRunning];
     self.state = kLXAudioPlayerStatePaused;
     if (isRunning) {
         handleError(AUGraphStop(_graph),
@@ -841,7 +836,6 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
     [self.playbackThreadRunningLock unlockWithCondition:1];
     
     [self.playbackRunLoop addPort:[NSPort port] forMode:NSDefaultRunLoopMode];
-    //TODO:stop run loop at a proper time
     while (self.playbackThreadShouldKeepRunning) {
         //TODO:does 10 seconds suit?
         [self.playbackRunLoop runMode:NSDefaultRunLoopMode
@@ -928,7 +922,6 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
             
             if (![self.ringBuffer filled]) {
                 if (self.inputStream.hasBytesAvailable) {
-                    //TODO:figure out buffer size
                     UInt32 bufferSize = 1024;
                     UInt8 *inputBuffer = calloc(sizeof(UInt8)*bufferSize, 1);
                     NSInteger readLength;
