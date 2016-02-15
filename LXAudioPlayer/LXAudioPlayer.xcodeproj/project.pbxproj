@@ -50,7 +50,6 @@
 		8E08C5C91C473D9000A8EF2C /* LXAudioPlayerTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = LXAudioPlayerTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		8E08C5CB1C473D9000A8EF2C /* LXAudioPlayerTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = LXAudioPlayerTests.m; sourceTree = "<group>"; };
 		8E08C5CD1C473D9000A8EF2C /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		8E08C5D31C474C8500A8EF2C /* LXHeader.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = LXHeader.h; sourceTree = "<group>"; };
 		8E69B50E1C50DB87002DEFCF /* CoreGraphics.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreGraphics.framework; path = System/Library/Frameworks/CoreGraphics.framework; sourceTree = SDKROOT; };
 		8E69B5101C50DB8C002DEFCF /* GLKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = GLKit.framework; path = System/Library/Frameworks/GLKit.framework; sourceTree = SDKROOT; };
 		8E69B5121C50DB93002DEFCF /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = System/Library/Frameworks/Foundation.framework; sourceTree = SDKROOT; };
@@ -103,7 +102,6 @@
 				8E08C5A21C438CE200A8EF2C /* AppDelegate.m */,
 				8E08C5A41C438CE200A8EF2C /* ViewController.h */,
 				8E08C5A51C438CE200A8EF2C /* ViewController.m */,
-				8E08C5D31C474C8500A8EF2C /* LXHeader.h */,
 				8E08C5B51C438F6600A8EF2C /* LXAudioPlayer.h */,
 				8E08C5B61C438F6600A8EF2C /* LXAudioPlayer.m */,
 				8E08C5BD1C46274500A8EF2C /* LXRingBuffer.h */,
