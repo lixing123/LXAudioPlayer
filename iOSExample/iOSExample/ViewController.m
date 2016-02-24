@@ -31,8 +31,8 @@
 //    NSString *fileString = [[NSBundle mainBundle] pathForResource:@"test" ofType:@"mp3"];
 //    NSURL *url = [[NSURL alloc] initFileURLWithPath:fileString];
     //TODO:when comes up with this url, duration seems to be wrong; need to be fixed;
-    //NSURL *url = [NSURL URLWithString:@"http://www.abstractpath.com/files/audiosamples/sample.mp3"];
-    NSURL *url = [NSURL URLWithString:@"http://www.ladybirdedu.com/pregnotice/music/%E5%84%BF%E6%AD%8C/%E4%B8%8A%E5%AD%A6%E7%9C%9F%E6%9C%89%E8%B6%A3.mp3"];
+    NSURL *url = [NSURL URLWithString:@"http://www.abstractpath.com/files/audiosamples/sample.mp3"];
+    //NSURL *url = [NSURL URLWithString:@"http://www.ladybirdedu.com/pregnotice/music/%E5%84%BF%E6%AD%8C/%E4%B8%8A%E5%AD%A6%E7%9C%9F%E6%9C%89%E8%B6%A3.mp3"];
     //the lxPlayer must be of a global variable, or it'll be released before playing.
     self.lxPlayer = [[LXAudioPlayer alloc] initWithURL:url delegate:self];
     self.player = [[AVAudioPlayer alloc] initWithContentsOfURL:url
