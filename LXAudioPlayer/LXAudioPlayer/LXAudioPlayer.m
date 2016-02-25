@@ -49,7 +49,7 @@ static void handleError(OSStatus result, const char *failReason, failOperation o
     }
 }
 
-@interface LXAudioPlayer ()<NSStreamDelegate,NSURLSessionDataDelegate>{
+@interface LXAudioPlayer ()<NSStreamDelegate>{
 @public
     pthread_mutex_t playerMutex;
     pthread_mutex_t ringBufferMutex;
@@ -69,8 +69,6 @@ static void handleError(OSStatus result, const char *failReason, failOperation o
 
 @property(nonatomic)NSInputStream *inputStream;
 @property(nonatomic)BOOL inputStreamEndEncountered;
-@property(nonatomic)NSURLSession *urlSession;
-@property(nonatomic)NSURLSessionDataTask *task;
 @property(nonatomic)BOOL shouldSeek;//this is used for every seeking operation
 @property(nonatomic)NSTimeInterval seekOffset;
 @property(nonatomic)AudioFileStreamID audioFileStream;
@@ -163,10 +161,12 @@ static OSStatus RemoteIOUnitCallback(void *							inRefCon,
     }
     
     if ([player.ringBuffer needToBeFilled]&&player.AudioFileStreamIsWaitingForSpace) {
+    //if ([player.ringBuffer needToBeFilled]) {
         //tell the NSInputStream delegate to continue read data
         pthread_mutex_lock(&player->ringBufferMutex);
         pthread_cond_signal(&player->ringBufferFilledCondition);
         pthread_mutex_unlock(&player->ringBufferMutex);
+        //[player.task resume];
     }
     
     return noErr;
@@ -409,9 +409,7 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
         
         [self setupPlaybackThread];
         
-        //replace NSInputStream with NSURLSession
-        //[self setupInputStream];
-        [self setupURLSession];
+        [self setupInputStream];
         
         [self setupAudioFileStreamService];
         
@@ -522,7 +520,7 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
     SInt64 fileOffset = actualByteOffset + dataOffset;
     if (![self isLocalFile]) {
         self.shouldSeek = YES;
-        self.seekOffset = seekTime;
+        self.seekOffset = fileOffset;
         [self destroyInputStream];
         [self setupInputStream];
     }else {
@@ -588,7 +586,7 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
         {
             CFHTTPMessageSetHeaderFieldValue(message,
                                              CFSTR("Range"),
-                                             (__bridge CFStringRef)[NSString stringWithFormat:@"bytes=%lld-", (int)self.seekOffset]);
+                                             (__bridge CFStringRef)[NSString stringWithFormat:@"bytes=%d-", (int)self.seekOffset]);
             self.shouldSeek = NO;
         }
         
@@ -599,19 +597,20 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
                                          CFSTR("Ice-MetaData"),
                                          CFSTR("0"));
         
-        //TODO:replace CFReadStreamCreateForHTTPRequest with NSURLSession
+        //NSURLSession is not good for playing
         inputStreamRef = CFReadStreamCreateForHTTPRequest(NULL,
                                                           message);
+        NSInputStream *stream = (__bridge_transfer NSInputStream *)inputStreamRef;
+        stream.delegate = self;
+        [stream scheduleInRunLoop:self.playbackRunLoop
+                          forMode:NSDefaultRunLoopMode];
+        [stream open];
     }
     self.inputStream = (__bridge_transfer NSInputStream *)inputStreamRef;
     
-    self.inputStream.delegate = self;
     //make sure the playback thread is already running
     [self.playbackThreadRunningLock lockWhenCondition:1];
     [self.playbackThreadRunningLock unlockWithCondition:0];
-    [self.inputStream scheduleInRunLoop:self.playbackRunLoop
-                                forMode:NSDefaultRunLoopMode];
-    [self.inputStream open];
 }
 
 - (void)destroyInputStream {
@@ -619,15 +618,7 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
     [self.inputStream removeFromRunLoop:[NSRunLoop currentRunLoop]
                                 forMode:NSDefaultRunLoopMode];
     self.inputStream.delegate = nil;
-}
-
-- (void)setupURLSession {
-    NSURLSessionConfiguration *sessionConfiguration = [NSURLSessionConfiguration defaultSessionConfiguration];
-    self.urlSession = [NSURLSession sessionWithConfiguration:sessionConfiguration
-                                                    delegate:self
-                                               delegateQueue:nil];
-    self.task = [self.urlSession dataTaskWithURL:self.url];
-    [self.task resume];
+    self.inputStream = nil;
 }
 
 - (void)setupAudioFileStreamService {
@@ -905,6 +896,7 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
 #pragma mark - NSStreamDelegate
 
 - (void)stream:(NSStream *)aStream handleEvent:(NSStreamEvent)eventCode {
+    NSLog(@"%s",__func__);
     NSInputStream *aInputStream = (NSInputStream *)aStream;
     switch (eventCode) {
         case NSStreamEventNone:{
@@ -966,111 +958,5 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
             break;
     }
 }
-
-#pragma mark - NSURLSessionDelegate
-
-/* The last message a session receives.  A session will only become
- * invalid because of a systemic error or when it has been
- * explicitly invalidated, in which case the error parameter will be nil.
- */
-- (void)URLSession:(NSURLSession *)session didBecomeInvalidWithError:(nullable NSError *)error {
-    NSLog(@"%s",__func__);
-}
-
-/* If implemented, when a connection level authentication challenge
- * has occurred, this delegate will be given the opportunity to
- * provide authentication credentials to the underlying
- * connection. Some types of authentication will apply to more than
- * one request on a given connection to a server (SSL Server Trust
- * challenges).  If this delegate message is not implemented, the
- * behavior will be to use the default handling, which may involve user
- * interaction.
- */
-- (void)URLSession:(NSURLSession *)session didReceiveChallenge:(NSURLAuthenticationChallenge *)challenge
- completionHandler:(void (^)(NSURLSessionAuthChallengeDisposition disposition, NSURLCredential * __nullable credential))completionHandler {
-    NSLog(@"%s",__func__);
-}
-
-/* If an application has received an
- * -application:handleEventsForBackgroundURLSession:completionHandler:
- * message, the session delegate will receive this message to indicate
- * that all messages previously enqueued for this session have been
- * delivered.  At this time it is safe to invoke the previously stored
- * completion handler, or to begin any internal updates that will
- * result in invoking the completion handler.
- */
-- (void)URLSessionDidFinishEventsForBackgroundURLSession:(NSURLSession *)session NS_AVAILABLE_IOS(7_0) {
-    NSLog(@"%s",__func__);
-}
-
-#pragma mark - NSURLSessionDataDelegate
-
-/* The task has received a response and no further messages will be
- * received until the completion block is called. The disposition
- * allows you to cancel a request or to turn a data task into a
- * download task. This delegate message is optional - if you do not
- * implement it, you can get the response as a property of the task.
- *
- * This method will not be called for background upload tasks (which cannot be converted to download tasks).
- */
-- (void)URLSession:(NSURLSession *)session dataTask:(NSURLSessionDataTask *)dataTask
-didReceiveResponse:(NSURLResponse *)response
- completionHandler:(void (^)(NSURLSessionResponseDisposition disposition))completionHandler {
-    NSLog(@"%s",__func__);
-    completionHandler(NSURLSessionResponseAllow);
-}
-
-/* Notification that a data task has become a download task.  No
- * future messages will be sent to the data task.
- */
-- (void)URLSession:(NSURLSession *)session dataTask:(NSURLSessionDataTask *)dataTask
-didBecomeDownloadTask:(NSURLSessionDownloadTask *)downloadTask {
-    NSLog(@"%s",__func__);
-}
-
-/*
- * Notification that a data task has become a bidirectional stream
- * task.  No future messages will be sent to the data task.  The newly
- * created streamTask will carry the original request and response as
- * properties.
- *
- * For requests that were pipelined, the stream object will only allow
- * reading, and the object will immediately issue a
- * -URLSession:writeClosedForStream:.  Pipelining can be disabled for
- * all requests in a session, or by the NSURLRequest
- * HTTPShouldUsePipelining property.
- *
- * The underlying connection is no longer considered part of the HTTP
- * connection cache and won't count against the total number of
- * connections per host.
- */
-- (void)URLSession:(NSURLSession *)session dataTask:(NSURLSessionDataTask *)dataTask
-didBecomeStreamTask:(NSURLSessionStreamTask *)streamTask {
-    NSLog(@"%s",__func__);
-}
-
-/* Sent when data is available for the delegate to consume.  It is
- * assumed that the delegate will retain and not copy the data.  As
- * the data may be discontiguous, you should use
- * [NSData enumerateByteRangesUsingBlock:] to access it.
- */
-- (void)URLSession:(NSURLSession *)session dataTask:(NSURLSessionDataTask *)dataTask
-    didReceiveData:(NSData *)data {
-    NSLog(@"%s",__func__);
-}
-
-/* Invoke the completion routine with a valid NSCachedURLResponse to
- * allow the resulting data to be cached, or pass nil to prevent
- * caching. Note that there is no guarantee that caching will be
- * attempted for a given resource, and you should not rely on this
- * message to receive the resource data.
- */
-- (void)URLSession:(NSURLSession *)session dataTask:(NSURLSessionDataTask *)dataTask
- willCacheResponse:(NSCachedURLResponse *)proposedResponse
- completionHandler:(void (^)(NSCachedURLResponse * __nullable cachedResponse))completionHandler {
-    NSLog(@"%s",__func__);
-}
-
-
 
 @end
