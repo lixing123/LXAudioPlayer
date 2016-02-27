@@ -522,7 +522,16 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
         self.shouldSeek = YES;
         self.seekOffset = fileOffset;
         [self destroyInputStream];
+        [self.ringBuffer reset];
         [self setupInputStream];
+        
+        //signal playback thread
+        pthread_mutex_lock(&ringBufferMutex);
+        pthread_cond_signal(&ringBufferFilledCondition);
+        pthread_mutex_unlock(&ringBufferMutex);
+        
+        self.progress = seekTime;
+        pthread_mutex_unlock(&playerMutex);
     }else {
         //NSInputStream seek
         //TODO:for http resources, we should use other methods
@@ -587,7 +596,6 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
             CFHTTPMessageSetHeaderFieldValue(message,
                                              CFSTR("Range"),
                                              (__bridge CFStringRef)[NSString stringWithFormat:@"bytes=%d-", (int)self.seekOffset]);
-            self.shouldSeek = NO;
         }
         
         CFHTTPMessageSetHeaderFieldValue(message,
@@ -609,13 +617,15 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
     self.inputStream = (__bridge_transfer NSInputStream *)inputStreamRef;
     
     //make sure the playback thread is already running
-    [self.playbackThreadRunningLock lockWhenCondition:1];
-    [self.playbackThreadRunningLock unlockWithCondition:0];
+    if (!self.shouldSeek) {
+        [self.playbackThreadRunningLock lockWhenCondition:1];
+        [self.playbackThreadRunningLock unlockWithCondition:0];
+    }
 }
 
 - (void)destroyInputStream {
     [self.inputStream close];
-    [self.inputStream removeFromRunLoop:[NSRunLoop currentRunLoop]
+    [self.inputStream removeFromRunLoop:self.playbackRunLoop
                                 forMode:NSDefaultRunLoopMode];
     self.inputStream.delegate = nil;
     self.inputStream = nil;
@@ -896,7 +906,6 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
 #pragma mark - NSStreamDelegate
 
 - (void)stream:(NSStream *)aStream handleEvent:(NSStreamEvent)eventCode {
-    NSLog(@"%s",__func__);
     NSInputStream *aInputStream = (NSInputStream *)aStream;
     switch (eventCode) {
         case NSStreamEventNone:{
