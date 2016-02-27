@@ -501,6 +501,7 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
     //AudioFileStream seek
     //TODO:check this applies to PCM, CBR and VBR
     //TODO: can packet duration calculated based on kAudioFileStreamProperty_AverageBytesPerPacket?
+    //TODO:for network resources, after seeking, when play to end, duration will change
     pthread_mutex_lock(&playerMutex);
     float packetDuration = self.inputFormat.mFramesPerPacket/self.inputFormat.mSampleRate;
     SInt64 packetOffset = floor(seekTime/packetDuration);
