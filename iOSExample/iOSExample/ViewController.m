@@ -18,6 +18,8 @@
 @property(nonatomic)AVAudioPlayer *player;
 @property(nonatomic)UISlider *slider;
 @property(nonatomic)UILabel *durationLabel;
+@property(nonatomic)UILabel *statusLabel;
+@property(nonatomic)UILabel *progressLabel;
 
 @end
 
@@ -32,7 +34,7 @@
 //    NSURL *url = [[NSURL alloc] initFileURLWithPath:fileString];
     //TODO:when comes up with this url, duration seems to be wrong; need to be fixed;
     NSURL *url = [NSURL URLWithString:@"http://www.abstractpath.com/files/audiosamples/sample.mp3"];
-    //NSURL *url = [NSURL URLWithString:@"http://www.ladybirdedu.com/pregnotice/music/%E5%84%BF%E6%AD%8C/%E4%B8%8A%E5%AD%A6%E7%9C%9F%E6%9C%89%E8%B6%A3.mp3"];
+//    NSURL *url = [NSURL URLWithString:@"http://www.ladybirdedu.com/pregnotice/music/%E5%84%BF%E6%AD%8C/%E4%B8%8A%E5%AD%A6%E7%9C%9F%E6%9C%89%E8%B6%A3.mp3"];
     //the lxPlayer must be of a global variable, or it'll be released before playing.
     self.lxPlayer = [[LXAudioPlayer alloc] initWithURL:url delegate:self];
     self.player = [[AVAudioPlayer alloc] initWithContentsOfURL:url
@@ -76,6 +78,12 @@
     self.durationLabel.text = @"duration:";
     [self.view addSubview:self.durationLabel];
     
+    self.statusLabel = [[UILabel alloc] initWithFrame:CGRectMake(0, 220, 150, 30)];
+    [self.view addSubview:self.statusLabel];
+    
+    self.progressLabel = [[UILabel alloc] initWithFrame:CGRectMake(0, 250, 150, 30)];
+    [self.view addSubview:self.progressLabel];
+    
     [NSTimer scheduledTimerWithTimeInterval:1.0
                                      target:self
                                    selector:@selector(updateViews)
@@ -86,6 +94,7 @@
 - (void)updateViews {
     NSLog(@"progress:%f",self.lxPlayer.progress);
     self.slider.value = self.lxPlayer.progress;
+    self.progressLabel.text = [NSString stringWithFormat:@"progress:%.2f",self.lxPlayer.progress];
 }
 
 - (void)slide:(UISlider *)aSlider {
@@ -160,31 +169,31 @@
 - (void)didUpdateState:(LXAudioPlayerState)state {
     switch (state) {
         case kLXAudioPlayerStatePlaying:{
-            NSLog(@"kLXAudioPlayerStatePlaying");
+            self.statusLabel.text = @"playing";
             break;
         }
         case kLXAudioPlayerStateReady:{
-            NSLog(@"kLXAudioPlayerStateReady");
+            self.statusLabel.text = @"ready";
             break;
         }
         case kLXAudioPlayerStateBuffering:{
-            NSLog(@"kLXAudioPlayerStateBuffering");
+            self.statusLabel.text = @"buffering";
             break;
         }
         case kLXAudioPlayerStatePaused:{
-            NSLog(@"kLXAudioPlayerStatePaused");
+            self.statusLabel.text = @"paused";
             break;
         }
         case kLXAudioPlayerStateStopped:{
-            NSLog(@"kLXAudioPlayerStateStopped");
+            self.statusLabel.text = @"stopped";
             break;
         }
         case kLXAudioPlayerStateEnded:{
-            NSLog(@"kLXAudioPlayerStateEndded");
+            self.statusLabel.text = @"ended";
             break;
         }
         case kLXAudioPlayerStateError:{
-            NSLog(@"error occured");
+            self.statusLabel.text = @"error";
             break;
         }
         default:

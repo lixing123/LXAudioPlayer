@@ -121,6 +121,7 @@
 				TargetAttributes = {
 					8119F0CA1C721BB0008B2E0D = {
 						CreatedOnToolsVersion = 7.2.1;
+						DevelopmentTeam = ANR2YRFV52;
 					};
 				};
 			};
@@ -275,6 +276,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
 				HEADER_SEARCH_PATHS = "$(PROJECT_DIR)/../LXAudioPlayer/LXAudioPlayer";
 				INFOPLIST_FILE = iOSExample/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
@@ -287,6 +289,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
 				HEADER_SEARCH_PATHS = "$(PROJECT_DIR)/../LXAudioPlayer/LXAudioPlayer";
 				INFOPLIST_FILE = iOSExample/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";

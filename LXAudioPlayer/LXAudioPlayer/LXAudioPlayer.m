@@ -502,6 +502,7 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
     //TODO:check this applies to PCM, CBR and VBR
     //TODO: can packet duration calculated based on kAudioFileStreamProperty_AverageBytesPerPacket?
     //TODO:for network resources, after seeking, when play to end, duration will change
+    //TODO:seek may cause EXC_BAD_ACCESS
     pthread_mutex_lock(&playerMutex);
     float packetDuration = self.inputFormat.mFramesPerPacket/self.inputFormat.mSampleRate;
     SInt64 packetOffset = floor(seekTime/packetDuration);
@@ -626,6 +627,7 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
 
 - (void)destroyInputStream {
     [self.inputStream close];
+    //TODO:this may cause EXC_BAD_ACCESS
     [self.inputStream removeFromRunLoop:self.playbackRunLoop
                                 forMode:NSDefaultRunLoopMode];
     self.inputStream.delegate = nil;
@@ -851,7 +853,7 @@ void MyAudioFileStream_PacketsProc (void *							inClientData,
     
     [self.playbackRunLoop addPort:[NSPort port] forMode:NSDefaultRunLoopMode];
     while (self.playbackThreadShouldKeepRunning) {
-        //TODO:does 10 seconds suit?
+        //TODO:this may cause EXC_BAD_ACCESS
         [self.playbackRunLoop runMode:NSDefaultRunLoopMode
                            beforeDate:[NSDate dateWithTimeIntervalSinceNow:10.0]];
     }
